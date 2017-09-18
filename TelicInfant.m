@@ -3,17 +3,17 @@ function [] = TelicInfant()
     % calculationsMap : framesPerObjectLoop, framesPerLoop, minSpace, breakTime, displayTime, blankscreenTime, scale, xGridSpaces, yGridSpaces, paramValues, parametersKeyList
     % colorsMap : screenBlack, screenWhite, screenGrey, rgbgrey
     % screenInfoMap : window, vbl, ifi, baseRect, screenXpixels, screenYpixels, stimXpixels, xCenter, yCenter, leftxCenter, rightxCenter, screenNumber, imageTexture
+    condition = input('Condition r (right alternating) or l (left alternating): ', 's');
+    alternatingSide = alternatingInputcheck(condition);
+    condition = input('Condition nat (natural) or unnat (unnatural): ', 's');
+    breakType = breakTypeInputcheck(condition);
+    
     [calculationsMap, colorsMap, screenInfoMap] = runSetup();
     timePerAnimation = 4.5;
 
-    % condition = input('Condition r (right alternating) or l (left alternating): ', 's');
-    % alternatingSide = condcheck(condition);
-    % condition = input('Condition r (right alternating) or l (left alternating): ', 's');
-    % alternatingSide = condcheck(condition);
-
     % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
-    alternatingSide = 'right';
-    breakType = 'equal';
+    % alternatingSide = 'right';
+    % breakType = 'equal';
 
     for t = 1:4
         attentionScreen(screenInfoMap, colorsMap);
@@ -25,7 +25,7 @@ function [] = TelicInfant()
         end
     end
     % runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType);
-
+    endingScreen(screenInfoMap, colorsMap)
 
     % drawBlankScreen(screenInfoMap, colorsMap);
     % screenInfoMap('vbl') = Screen('Flip', window);
@@ -623,6 +623,7 @@ function [] = drawBlankScreen(screenInfoMap, colorsMap)
 end
 
 % display an attention-grabber in the middle of the screen
+% Code from this tutorial: http://peterscarfe.com/scaleddotgriddemo.html
 function [] = attentionScreen(screenInfoMap, colorsMap)
     window = screenInfoMap('window');
     grey = colorsMap('rgbgrey');
@@ -697,10 +698,22 @@ function [] = attentionScreen(screenInfoMap, colorsMap)
         screenInfoMap('vbl')  = Screen('Flip', window, screenInfoMap('vbl') + (waitframes - 0.5) * ifi);
 
         % Increment the time
-    time = time + ifi;
+        time = time + ifi;
 
     end
 
+end
+
+% A blank screen at the end of the experiment; press any key to exit it
+function [] = endingScreen(screenInfoMap, colorsMap)  
+    window = screenInfoMap('window');
+    grey = colorsMap('rgbgrey');
+    yCenter = screenInfoMap('yCenter');
+    screenYpixels = screenInfoMap('screenYpixels');
+    screenXpixels = screenInfoMap('stimXpixels');
+
+    screenInfoMap('vbl') = Screen('Flip', window);
+    KbWait();
 end
 
 
@@ -816,7 +829,7 @@ function [calculationsMap, colorsMap, screenInfoMap] = runSetup()
     % textspace = 1.5;
     xGridSpaces = 4;
     yGridSpaces = 5;
-    scale = screenYpixels / 34.5;%previously 15
+    scale = screenYpixels / 35.5;%previously 15
     %Matlab's strings are stupid, so I have quotes and quotes with spaces in
     %variables here
     quote = '''';
