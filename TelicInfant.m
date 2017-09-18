@@ -6,12 +6,24 @@ function [] = TelicInfant()
     [calculationsMap, colorsMap, screenInfoMap] = runSetup();
     timePerAnimation = 4.5;
 
-    % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
-    alternatingSide = 'left';
-    breakType = 'random';
+    % condition = input('Condition r (right alternating) or l (left alternating): ', 's');
+    % alternatingSide = condcheck(condition);
+    % condition = input('Condition r (right alternating) or l (left alternating): ', 's');
+    % alternatingSide = condcheck(condition);
 
-    runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
-    
+    % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
+    alternatingSide = 'right';
+    breakType = 'equal';
+
+    for t = 1:4
+        attentionScreen(screenInfoMap, colorsMap);
+        runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
+        if strcmp(alternatingSide, 'left')
+            alternatingSide = 'right';
+        else
+            alternatingSide = 'left';
+        end
+    end
     % runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType);
 
 
@@ -695,14 +707,25 @@ end
 %%%%%%%%%%%%%%%%%%%
 % GENERAL FUNCTIONS
 
-function [cond] = condcheck(cond)
-    while ~strcmp(cond, 'r') && ~strcmp(cond, 'l')
-        cond = input('Condition must be r or l. Please enter r (right alternating first) or l (left alternating first): ', 's');
+function [condition] = alternatingInputcheck(condition)
+    while ~strcmp(condition, 'r') && ~strcmp(condition, 'l') && ~strcmp(condition, 'right') && ~strcmp(condition, 'left')
+        condition = input('Condition must be r or l. Please enter r (right alternating first) or l (left alternating first): ', 's');
     end
-    if strcmp(cond, 'r')
-      cond = 'right';
+    if strcmp(condition, 'r') || strcmp(condition, 'right')
+      condition = 'right';
     else
-      cond = 'left';
+      condition = 'left';
+    end
+end
+
+function [condition] = breakTypeInputcheck(condition)
+    while ~strcmp(condition, 'nat') && ~strcmp(condition, 'unnat') && ~strcmp(condition, 'natural') && ~strcmp(condition, 'unnatural')
+        condition = input('Condition must be nat or unnat. Please enter nat (natural, equally-spaced breaks) or unnat (unnatural, randomly-spaced breaks): ', 's');
+    end
+    if strcmp(condition, 'nat') || strcmp(condition, 'natural')
+        condition = 'equal';
+    else
+        condition = 'random';
     end
 end
 
@@ -785,9 +808,9 @@ function [calculationsMap, colorsMap, screenInfoMap] = runSetup()
     %the minimum possible number of frames between steps
     breakTime = .25;
     %The number of seconds for each pause
-    displayTime = 1.5;
+    displayTime = .5;
     %number of seconds for which to display images
-    blankscreenTime = .5;
+    blankscreenTime = .3;
     %Length of space between loops presentation
     % textsize = 40;
     % textspace = 1.5;
