@@ -8,7 +8,7 @@ function [] = TelicInfant()
 
     % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
     alternatingSide = 'left';
-    breakType = 'equal';
+    breakType = 'random';
 
     runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
     
@@ -36,6 +36,7 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
     leftAlternating = strcmp(alternatingSide, 'left');
     finalTime = datenum(clock + [0, 0, 0, 0, 0, 20]);
     if strcmp(breakType, 'equal')
+    
         generationFunction = @generateNaturalObjectSet;
     else
         generationFunction = @generateRandomObjectSet;
@@ -189,7 +190,7 @@ function [] = generateRandomObjectSet(calculationsMap, screenInfoMap, colorsMap,
     gridIndex = 1;
     processedxPoints = [];
     processedyPoints = [];
-    for i = breakList(2:end)
+    for i = breakList(1:end)
         % get the points from the previous index to the next
         currentxPoints = xpoints(tempi:i);
         currentyPoints = ypoints(tempi:i);
@@ -208,12 +209,6 @@ function [] = generateRandomObjectSet(calculationsMap, screenInfoMap, colorsMap,
         processedxPoints = [processedxPoints currentxPoints];
         processedyPoints = [processedyPoints currentyPoints];
 
-        % for p=1:numel(currentxPoints)-1
-        %     disp(currentxPoints(p))
-        %     Screen('DrawLine', window, lineColor, currentxPoints(p), currentyPoints(p), ...
-        %         currentxPoints(p+1), currentyPoints(p+1), 5);
-        % end
-
         % reset iterators
         tempi = i;
         gridIndex = gridIndex + 1;
@@ -231,9 +226,6 @@ function [] = generateRandomObjectSet(calculationsMap, screenInfoMap, colorsMap,
         if ~any(p == breakList) && ~any(p+1 == breakList)
             Screen('DrawLine', window, lineColor, processedxPoints(p), processedyPoints(p), ...
                 processedxPoints(p+1), processedyPoints(p+1), 5);
-        else
-            disp(p)
-            % disp(breakList)
         end
     end
 end
@@ -801,7 +793,7 @@ function [calculationsMap, colorsMap, screenInfoMap] = runSetup()
     % textspace = 1.5;
     xGridSpaces = 4;
     yGridSpaces = 5;
-    scale = screenYpixels / 17;%previously 15
+    scale = screenYpixels / 34.5;%previously 15
     %Matlab's strings are stupid, so I have quotes and quotes with spaces in
     %variables here
     quote = '''';
