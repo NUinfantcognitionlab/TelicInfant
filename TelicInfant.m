@@ -13,7 +13,7 @@ function [] = TelicInfant()
 
     % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
     alternatingSide = 'right';
-    breakType = 'equal';
+    breakType = 'random';
 
     % for t = 1:4
     %     attentionScreen(screenInfoMap, colorsMap);
@@ -372,6 +372,24 @@ function [gridCoordinates] = generateGrid(xspaces, yspaces)
     end
 end
 
+function [gridCoordinates] = generateEventsGrid(xspaces, yspaces)
+    borderShrink = .05;
+    xstart = 1/(2*xspaces) + borderShrink;
+    xend = ((2*xspaces)-1)/(2*xspaces) - borderShrink;
+    xelements = linspace(xstart, xend, xspaces);
+    xcolumn = [];
+    for i = xelements
+        xcolumn = [xcolumn ; repmat(i, yspaces, 1)];
+    end
+
+    ystart = 1/(2*yspaces) + borderShrink;
+    yend = ((2*yspaces)-1)/(2*yspaces) - borderShrink;
+    yelements = linspace(ystart, yend, yspaces);
+    ycolumn = repmat(yelements', xspaces, 1);
+
+    gridCoordinates = [xcolumn ycolumn];
+end
+
 % transposes one ellipse to the appropriate position on the grid
 function [xpoints ypoints] = transposeEllipse(screenInfoMap, xpoints, ypoints, xsideoffset, gridPosition)
     xpoints = xpoints + xsideoffset + (gridPosition(1)*screenInfoMap('stimXpixels'));
@@ -410,8 +428,8 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
     twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
 
 
-    gridCoordinates = generateGrid(xGridSpaces, yGridSpaces);
-    twoscalegridCoordinates = generateGrid(2,4);
+    gridCoordinates = generateEventsGrid(xGridSpaces, yGridSpaces);
+    twoscalegridCoordinates = generateEventsGrid(2,4);
 
     if strcmp(breakType, 'equal')
         generationFunction = @generateNaturalCoordinateSet;
