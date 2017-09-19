@@ -1,8 +1,11 @@
 function [] = TelicInfant()
-    % condition = input('Condition r (right alternating) or l (left alternating): ', 's');
-    % alternatingSide = alternatingInputcheck(condition);
-    % condition = input('Condition nat (natural) or unnat (unnatural): ', 's');
-    % breakType = breakTypeInputcheck(condition);
+    % Set up initial conditions via the command line
+    condition = input('Condition e (event) or o (object): ', 's');
+    displayType = displayTypeInputcheck(condition);
+    condition = input('Condition r (right alternating) or l (left alternating): ', 's');
+    alternatingSide = alternatingInputcheck(condition);
+    condition = input('Condition nat (natural) or unnat (unnatural): ', 's');
+    breakType = breakTypeInputcheck(condition);
 
     %runs a bunch of Psychtoolbox setup and variable calculation, and returns some hashmaps storing that information for later retrieval
     % calculationsMap : framesPerObjectLoop, framesPerLoop, minSpace, breakTime, displayTime, blankscreenTime, scale, xGridSpaces, yGridSpaces, paramValues, parametersKeyList
@@ -12,25 +15,24 @@ function [] = TelicInfant()
     timePerAnimation = 4.5;
 
     % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
-    alternatingSide = 'right';
-    breakType = 'random';
+    % alternatingSide = 'right';
+    % breakType = 'random';
 
-    % for t = 1:4
-    %     attentionScreen(screenInfoMap, colorsMap);
-    %     runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
-    %     if strcmp(alternatingSide, 'left')
-    %         alternatingSide = 'right';
-    %     else
-    %         alternatingSide = 'left';
-    %     end
-    % end
-    runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType);
-    % endingScreen(screenInfoMap, colorsMap);
+    for t = 1:4
+        attentionScreen(screenInfoMap, colorsMap);
+        if strcmp(displayType, 'object')
+            runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
+        else
+            runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType);
+        end
+        if strcmp(alternatingSide, 'left')
+            alternatingSide = 'right';
+        else
+            alternatingSide = 'left';
+        end
+    end
+    endingScreen(screenInfoMap, colorsMap);
 
-    % drawBlankScreen(screenInfoMap, colorsMap);
-    % screenInfoMap('vbl') = Screen('Flip', window);
-
-    WaitSecs(1);
     sca
     Priority(0);
 end
@@ -778,6 +780,17 @@ function [condition] = breakTypeInputcheck(condition)
         condition = 'equal';
     else
         condition = 'random';
+    end
+end
+
+function [condition] = displayTypeInputcheck(condition)
+    while ~strcmp(condition, 'o') && ~strcmp(condition, 'e') && ~strcmp(condition, 'event') && ~strcmp(condition, 'object')
+        condition = input('Condition must be e or o. Please enter e (events) or o (objects): ', 's');
+    end
+    if strcmp(condition, 'e') || strcmp(condition, 'event')
+        condition = 'event';
+    else
+        condition = 'object';
     end
 end
 
