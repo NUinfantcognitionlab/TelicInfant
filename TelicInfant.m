@@ -24,9 +24,7 @@ function [] = TelicInfant()
     %         alternatingSide = 'left';
     %     end
     % end
-
-    runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
-    % runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType);
+    runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType);
     % endingScreen(screenInfoMap, colorsMap);
 
     % drawBlankScreen(screenInfoMap, colorsMap);
@@ -401,17 +399,41 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
     ifi = screenInfoMap('ifi');
     minSpace = calculationsMap('minSpace');
     breakFrames = round(calculationsMap('breakTime') / ifi);
+    leftAlternating = strcmp(alternatingSide, 'left');
+    xGridSpaces = calculationsMap('xGridSpaces');
+    yGridSpaces = calculationsMap('yGridSpaces');
+
+    %create a set of potential poitions on the grid, from 1 to however many spots there are
+    gridPositions = [1:(xGridSpaces*yGridSpaces)];
+    gridPositions = gridPositions(randperm(length(gridPositions)));
+
+    twoscalegridPositions = [1:(2*4)];
+    twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
+
+
+    gridCoordinates = generateGrid(xGridSpaces, yGridSpaces);
+    twoscalegridCoordinates = generateGrid(2,4);
+
+    if strcmp(breakType, 'equal')
+        generationFunction = @generateNaturalCoordinateSet;
+    else
+        generationFunction = @generateRandomCoordinateSet;
+    end
 
     % set up parameter cycle
     constantParams = paramValues(parametersKeyList(1,1),:);
     alternatingParams = paramValues(parametersKeyList(1,2),:);
     p=2;
     % generate the ellipse sets, and set the current animation Length (the number of frames to run to for this set) to whichever is longer)
-    [a_xpoints a_ypoints] = generateEventFrames(ifi, scale, minSpace, breakFrames, leftxCenter, yCenter, constantParams(1), timePerAnimation, constantParams(2), breakType);
-    [b_xpoints b_ypoints] = generateEventFrames(ifi, scale, minSpace, breakFrames, rightxCenter, yCenter, alternatingParams(1), timePerAnimation, alternatingParams(2), breakType);
+    [constant_xpoints constant_ypoints constant_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
+    constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions);
+    [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constant_breakList, breakFrames);
+    [alternating_xpoints alternating_ypoints alternating_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
+    alternatingParams(1), alternatingParams(2), screenInfoMap('stimXpixels')*2, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions);
+    [alternating_xpoints, alternating_ypoints] = addBreakFrames(alternating_xpoints, alternating_ypoints, alternating_breakList, breakFrames);
     % frame indexing variable f, parameter indexing variable p
     f=1;
-    currentAnimationLength = max([numel(a_xpoints), numel(b_ypoints)]);
+    currentAnimationLength = max([numel(constant_xpoints), numel(alternating_ypoints)]);
     while datenum(clock) < finalTime
         % if the current f is through all the frames of the current animation
         if f >= currentAnimationLength
@@ -425,23 +447,33 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
                 constantParams = paramValues(parametersKeyList(p,1),:);
                 alternatingParams = paramValues(parametersKeyList(p,2),:);
                 % generate a new set of animations
-                [a_xpoints a_ypoints] = generateEventFrames(ifi, scale, minSpace, breakFrames, leftxCenter, yCenter, constantParams(1), timePerAnimation, constantParams(2), breakType);
-                [b_xpoints b_ypoints] = generateEventFrames(ifi, scale, minSpace, breakFrames, rightxCenter, yCenter, alternatingParams(1), timePerAnimation, alternatingParams(2), breakType);
+                [constant_xpoints constant_ypoints constant_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
+                constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions);
+                [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constant_breakList, breakFrames);
+                [alternating_xpoints alternating_ypoints alternating_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
+                alternatingParams(1), alternatingParams(2), screenInfoMap('stimXpixels')*2, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions);
+                [alternating_xpoints, alternating_ypoints] = addBreakFrames(alternating_xpoints, alternating_ypoints, alternating_breakList, breakFrames);
                 % and reset f and the currentAnimationLength, but increment p
                 f=1;
-                currentAnimationLength = max([numel(a_xpoints), numel(b_ypoints)]);
+                currentAnimationLength = max([numel(constant_xpoints), numel(alternating_ypoints)]);
                 p = p+1;
                 % draw the first point and flip, vbl+blankscreentime
-                drawEventFrame(calculationsMap, screenInfoMap, colorsMap, a_xpoints, a_ypoints, b_xpoints, b_ypoints, f)
+                drawEventFrame(calculationsMap, screenInfoMap, colorsMap, constant_xpoints, constant_ypoints, alternating_xpoints, alternating_ypoints, f)
                 screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + blankscreenTime);
                 % if the time is too late, do nothing;no flip or anything so the stars stay on screen
                 % this way, it lasts the right amount of time without going over
             end
         % otherwisewise, draw the frame for the corresponding f
         else
-            drawEventFrame(calculationsMap, screenInfoMap, colorsMap, a_xpoints, a_ypoints, b_xpoints, b_ypoints, f)
-            % then flip, min time
-            screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + 0.5 * ifi);
+            if(leftAlternating)
+                drawEventFrame(calculationsMap, screenInfoMap, colorsMap, constant_xpoints, constant_ypoints, alternating_xpoints, alternating_ypoints, f)
+                % then flip, min time
+                screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + 0.5 * ifi);
+            else
+                drawEventFrame(calculationsMap, screenInfoMap, colorsMap, alternating_xpoints, alternating_ypoints, constant_xpoints, constant_ypoints, f)
+                % then flip, min time
+                screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + 0.5 * ifi);
+            end
         end
         f = f+1;
     end
@@ -462,6 +494,15 @@ function [xpoints, ypoints] = generateEventFrames(ifi, scale, minSpace, breakFra
     breakList = sort(generateBreakList(breakType, numel(xpoints), numberOfLoops, minSpace), 'descend');
 
     % at each point in the breaklist, copy that point, matrep to make a matrix of that value breakframes times over, then insert it
+    for i = breakList
+        xRepeat = repelem(xpoints(i), breakFrames);
+        yRepeat = repelem(ypoints(i), breakFrames);
+        xpoints = [xpoints(1:i) xRepeat xpoints(i+1:end)];
+        ypoints = [ypoints(1:i) yRepeat ypoints(i+1:end)];
+    end
+end
+
+function [xpoints, ypoints] = addBreakFrames(xpoints, ypoints, breakList, breakFrames)
     for i = breakList
         xRepeat = repelem(xpoints(i), breakFrames);
         yRepeat = repelem(ypoints(i), breakFrames);
