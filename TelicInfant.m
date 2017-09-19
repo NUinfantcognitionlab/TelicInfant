@@ -427,9 +427,13 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
     % generate the ellipse sets, and set the current animation Length (the number of frames to run to for this set) to whichever is longer)
     [constant_xpoints constant_ypoints constant_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
     constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions);
+    disp('constant')
+    disp(constant_breakList)
     [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constant_breakList, breakFrames);
     [alternating_xpoints alternating_ypoints alternating_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
     alternatingParams(1), alternatingParams(2), screenInfoMap('stimXpixels')*2, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions);
+    disp('alternating')
+    disp(alternating_breakList)
     [alternating_xpoints, alternating_ypoints] = addBreakFrames(alternating_xpoints, alternating_ypoints, alternating_breakList, breakFrames);
     % frame indexing variable f, parameter indexing variable p
     f=1;
@@ -449,9 +453,13 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
                 % generate a new set of animations
                 [constant_xpoints constant_ypoints constant_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
                 constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions);
+                disp('constant')
+                disp(constant_breakList)
                 [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constant_breakList, breakFrames);
                 [alternating_xpoints alternating_ypoints alternating_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
                 alternatingParams(1), alternatingParams(2), screenInfoMap('stimXpixels')*2, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions);
+                disp('alternating')
+                disp(alternating_breakList)
                 [alternating_xpoints, alternating_ypoints] = addBreakFrames(alternating_xpoints, alternating_ypoints, alternating_breakList, breakFrames);
                 % and reset f and the currentAnimationLength, but increment p
                 f=1;
@@ -503,11 +511,14 @@ function [xpoints, ypoints] = generateEventFrames(ifi, scale, minSpace, breakFra
 end
 
 function [xpoints, ypoints] = addBreakFrames(xpoints, ypoints, breakList, breakFrames)
+    disp(breakList)
+    breakList = sort(breakList, 'descend');
     for i = breakList
-        xRepeat = repelem(xpoints(i), breakFrames);
-        yRepeat = repelem(ypoints(i), breakFrames);
-        xpoints = [xpoints(1:i) xRepeat xpoints(i+1:end)];
-        ypoints = [ypoints(1:i) yRepeat ypoints(i+1:end)];
+        xRepeat = repelem(xpoints(i-6), breakFrames);
+        yRepeat = repelem(ypoints(i-6), breakFrames);
+        % repeating a couple frames to avoid drawing any frames connecting one ellipse to another
+        xpoints = [xpoints(1:i-6) repelem(xpoints(i-6), 6) xRepeat xpoints(i+1:end)];
+        ypoints = [ypoints(1:i-6) repelem(ypoints(i-6), 6) yRepeat ypoints(i+1:end)];
     end
 end
 
@@ -535,10 +546,10 @@ function [] = drawEventFrame(calculationsMap, screenInfoMap, colorsMap, a_xpoint
         n = a_pointslength;
     end
     % draw the frame to the screen
-    destRect = [a_xpoints(n) - 128/2, ... %left
-                a_ypoints(n) - 128/2, ... %top
-                a_xpoints(n) + 128/2, ... %right
-                a_ypoints(n) + 128/2]; %bottom
+    destRect = [a_xpoints(n) - 76/2, ... %left
+                a_ypoints(n) - 76/2, ... %top
+                a_xpoints(n) + 76/2, ... %right
+                a_ypoints(n) + 76/2]; %bottom
     Screen('DrawTexture', window, imageTexture, [], destRect, 0);
     % repeat for other side
     if frameNumber <= b_pointslength
@@ -546,10 +557,10 @@ function [] = drawEventFrame(calculationsMap, screenInfoMap, colorsMap, a_xpoint
     else
         n = b_pointslength;
     end
-    destRect = [b_xpoints(n) - 128/2, ... %left
-                b_ypoints(n) - 128/2, ... %top
-                b_xpoints(n) + 128/2, ... %right
-                b_ypoints(n) + 128/2]; %bottom
+    destRect = [b_xpoints(n) - 76/2, ... %left
+                b_ypoints(n) - 76/2, ... %top
+                b_xpoints(n) + 76/2, ... %right
+                b_ypoints(n) + 76/2]; %bottom
     Screen('DrawTexture', window, imageTexture, [], destRect, 0);
 end
 
