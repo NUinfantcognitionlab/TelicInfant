@@ -1,31 +1,33 @@
 function [] = TelicInfant()
+    % condition = input('Condition r (right alternating) or l (left alternating): ', 's');
+    % alternatingSide = alternatingInputcheck(condition);
+    % condition = input('Condition nat (natural) or unnat (unnatural): ', 's');
+    % breakType = breakTypeInputcheck(condition);
+
     %runs a bunch of Psychtoolbox setup and variable calculation, and returns some hashmaps storing that information for later retrieval
     % calculationsMap : framesPerObjectLoop, framesPerLoop, minSpace, breakTime, displayTime, blankscreenTime, scale, xGridSpaces, yGridSpaces, paramValues, parametersKeyList
     % colorsMap : screenBlack, screenWhite, screenGrey, rgbgrey
     % screenInfoMap : window, vbl, ifi, baseRect, screenXpixels, screenYpixels, stimXpixels, xCenter, yCenter, leftxCenter, rightxCenter, screenNumber, imageTexture
-    condition = input('Condition r (right alternating) or l (left alternating): ', 's');
-    alternatingSide = alternatingInputcheck(condition);
-    condition = input('Condition nat (natural) or unnat (unnatural): ', 's');
-    breakType = breakTypeInputcheck(condition);
-    
     [calculationsMap, colorsMap, screenInfoMap] = runSetup();
     timePerAnimation = 4.5;
 
     % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
-    % alternatingSide = 'right';
-    % breakType = 'equal';
+    alternatingSide = 'right';
+    breakType = 'random';
 
-    for t = 1:4
-        attentionScreen(screenInfoMap, colorsMap);
-        runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
-        if strcmp(alternatingSide, 'left')
-            alternatingSide = 'right';
-        else
-            alternatingSide = 'left';
-        end
-    end
+    % for t = 1:4
+    %     attentionScreen(screenInfoMap, colorsMap);
+    %     runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
+    %     if strcmp(alternatingSide, 'left')
+    %         alternatingSide = 'right';
+    %     else
+    %         alternatingSide = 'left';
+    %     end
+    % end
+
+    runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
     % runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType);
-    endingScreen(screenInfoMap, colorsMap)
+    % endingScreen(screenInfoMap, colorsMap);
 
     % drawBlankScreen(screenInfoMap, colorsMap);
     % screenInfoMap('vbl') = Screen('Flip', window);
@@ -49,9 +51,9 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
     finalTime = datenum(clock + [0, 0, 0, 0, 0, 20]);
     if strcmp(breakType, 'equal')
     
-        generationFunction = @generateNaturalObjectSet;
+        generationFunction = @drawNaturalObjectSet;
     else
-        generationFunction = @generateRandomObjectSet;
+        generationFunction = @drawRandomObjectSet;
     end
 
     while datenum(clock) < finalTime
@@ -89,7 +91,7 @@ end
 % Draws sets of object stimuli to the screen, but DOESN'T flip the screen to make them visible.
 % The side of the screen, and the size of the loops are specified
 % plotEllipse, rotateEllipse, generateGrid, and transposeEllipse are used to generate, rotate, and place ellipses
-function [] = generateNaturalObjectSet(calculationsMap, screenInfoMap, colorsMap, ...
+function [] = drawNaturalObjectSet(calculationsMap, screenInfoMap, colorsMap, ...
   numberOfLoops, ellipseScale, screenside, lineColor)
     scale = calculationsMap('scale');
     framesPerLoop = calculationsMap('framesPerObjectLoop');
@@ -97,9 +99,6 @@ function [] = generateNaturalObjectSet(calculationsMap, screenInfoMap, colorsMap
     black = colorsMap('screenBlack');
     xGridSpaces = calculationsMap('xGridSpaces');
     yGridSpaces = calculationsMap('yGridSpaces');
-
-    xpoints = [];
-    ypoints = [];
 
     yCenter = screenInfoMap('yCenter');
     if strcmp(screenside, 'left')
@@ -120,28 +119,12 @@ function [] = generateNaturalObjectSet(calculationsMap, screenInfoMap, colorsMap
 
     gridCoordinates = generateGrid(xGridSpaces, yGridSpaces);
     twoscalegridCoordinates = generateGrid(2,4);
-    breakList = [];
-    for i = 1:numberOfLoops
-        [xEllipse, yEllipse] = plotEllipse(calculationsMap('framesPerLoop'), ellipseScale);
-        [xEllipse, yEllipse] = rotateEllipse(xEllipse, yEllipse);
-        xEllipse = xEllipse .* scale;
-        yEllipse = yEllipse .* scale;
 
-        % if the scale is big, use the smaller grid. otherwise, use the normal grid
-        if(ellipseScale==2)
-            [xEllipse, yEllipse] = transposeEllipse(screenInfoMap, xEllipse, yEllipse, xsideoffset, twoscalegridCoordinates(twoscalegridPositions(i),:));
-        else
-            [xEllipse, yEllipse] = transposeEllipse(screenInfoMap, xEllipse, yEllipse, xsideoffset, gridCoordinates(gridPositions(i),:));
-        end
-
-        xpoints = [xpoints xEllipse];
-        ypoints = [ypoints yEllipse];
-        breakList = [breakList numel(xpoints)];
-    end
-
-
+    [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
+    numberOfLoops, ellipseScale, xsideoffset, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions);
 
     totalpoints = numel(xpoints);
+
     bgRect = CenterRectOnPointd(screenInfoMap('baseRect'), xCenter, yCenter);
     Screen('FillRect', window, colorsMap('rgbgrey'), bgRect);
     savepoint = 1;
@@ -160,41 +143,34 @@ function [] = generateNaturalObjectSet(calculationsMap, screenInfoMap, colorsMap
                 xpoints(savepoint), ypoints(savepoint), 5);
 end
 
-% Like the above function, but for randomized breaks instead
-function [] = generateRandomObjectSet(calculationsMap, screenInfoMap, colorsMap, ...
-  numberOfLoops, ellipseScale, screenside, lineColor)
-    scale = calculationsMap('scale');
-    framesPerLoop = calculationsMap('framesPerObjectLoop');
-    window = screenInfoMap('window');
-    black = colorsMap('screenBlack');
-    xGridSpaces = calculationsMap('xGridSpaces');
-    yGridSpaces = calculationsMap('yGridSpaces');
-
+% Generates the x-y coordinate pairs for the ellipses on the grid, but does not draw them.
+function [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
+  numberOfLoops, ellipseScale, xsideoffset, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions)
     xpoints = [];
     ypoints = [];
+    breakList = [];
+    for i = 1:numberOfLoops
+        [xEllipse, yEllipse] = plotEllipse(calculationsMap('framesPerLoop'), ellipseScale);
+        [xEllipse, yEllipse] = rotateEllipse(xEllipse, yEllipse);
+        xEllipse = xEllipse .* scale;
+        yEllipse = yEllipse .* scale;
 
-    yCenter = screenInfoMap('yCenter');
-    if strcmp(screenside, 'left')
-        xCenter = screenInfoMap('leftxCenter');
-        xsideoffset = 0;
-    else
-        xCenter = screenInfoMap('rightxCenter');
-        xsideoffset = screenInfoMap('stimXpixels')*2;
+        % if the scale is big, use the smaller grid. otherwise, use the normal grid
+        if(ellipseScale==2)
+            [xEllipse, yEllipse] = transposeEllipse(screenInfoMap, xEllipse, yEllipse, xsideoffset, twoscalegridCoordinates(twoscalegridPositions(i),:));
+        else
+            [xEllipse, yEllipse] = transposeEllipse(screenInfoMap, xEllipse, yEllipse, xsideoffset, gridCoordinates(gridPositions(i),:));
+        end
+
+        xpoints = [xpoints xEllipse];
+        ypoints = [ypoints yEllipse];
+        breakList = [breakList numel(xpoints)];
     end
+end
 
-    %create a set of potential poitions on the grid, from 1 to however many spots there are
-    gridPositions = [1:(xGridSpaces*yGridSpaces)];
-    gridPositions = gridPositions(randperm(length(gridPositions)));
-
-    twoscalegridPositions = [1:(2*4)];
-    twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
-
-
-    gridCoordinates = generateGrid(xGridSpaces, yGridSpaces);
-    twoscalegridCoordinates = generateGrid(2,4);
-
-    [xpoints, ypoints] = getEllipseSetPoints(numberOfLoops, framesPerLoop, ellipseScale);
-
+function [processedxPoints processedyPoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
+  numberOfLoops, ellipseScale, xsideoffset, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions)
+    [xpoints, ypoints] = getEllipseSetPoints(numberOfLoops, calculationsMap('framesPerLoop'), ellipseScale);
     % sort the breaks by ascending to deal with each chunk of points separately
     breakList = sort(generateBreakList('random', numel(xpoints), numberOfLoops, calculationsMap('minSpace')), 'ascend');
     % placeholder for breaking up the points and index for progressing through grid positions
@@ -225,19 +201,54 @@ function [] = generateRandomObjectSet(calculationsMap, screenInfoMap, colorsMap,
         tempi = i;
         gridIndex = gridIndex + 1;
     end
+end
+
+% Like the above function, but for randomized breaks instead
+function [] = drawRandomObjectSet(calculationsMap, screenInfoMap, colorsMap, ...
+  numberOfLoops, ellipseScale, screenside, lineColor)
+    scale = calculationsMap('scale');
+    framesPerLoop = calculationsMap('framesPerObjectLoop');
+    window = screenInfoMap('window');
+    black = colorsMap('screenBlack');
+    xGridSpaces = calculationsMap('xGridSpaces');
+    yGridSpaces = calculationsMap('yGridSpaces');
+
+    xpoints = [];
+    ypoints = [];
+
+    yCenter = screenInfoMap('yCenter');
+    if strcmp(screenside, 'left')
+        xCenter = screenInfoMap('leftxCenter');
+        xsideoffset = 0;
+    else
+        xCenter = screenInfoMap('rightxCenter');
+        xsideoffset = screenInfoMap('stimXpixels')*2;
+    end
+
+    %create a set of potential poitions on the grid, from 1 to however many spots there are
+    gridPositions = [1:(xGridSpaces*yGridSpaces)];
+    gridPositions = gridPositions(randperm(length(gridPositions)));
+
+    twoscalegridPositions = [1:(2*4)];
+    twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
 
 
+    gridCoordinates = generateGrid(xGridSpaces, yGridSpaces);
+    twoscalegridCoordinates = generateGrid(2,4);
+
+    [xpoints ypoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
+    numberOfLoops, ellipseScale, xsideoffset, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions);
 
     % drawing to screen
-    totalpoints = numel(processedxPoints);
+    totalpoints = numel(xpoints);
     bgRect = CenterRectOnPointd(screenInfoMap('baseRect'), xCenter, yCenter);
     Screen('FillRect', window, colorsMap('rgbgrey'), bgRect);
     savepoint = 1;
 
     for p = 1:totalpoints - 2
         if ~any(p == breakList) && ~any(p+1 == breakList)
-            Screen('DrawLine', window, lineColor, processedxPoints(p), processedyPoints(p), ...
-                processedxPoints(p+1), processedyPoints(p+1), 5);
+            Screen('DrawLine', window, lineColor, xpoints(p), ypoints(p), ...
+                xpoints(p+1), ypoints(p+1), 5);
         end
     end
 end
@@ -350,21 +361,6 @@ function [final_xpoints, final_ypoints] = rotateSection(xpoints, ypoints)
         final_xpoints(m) = nx(m)*cos(f) - ny(m)*sin(f);
         final_ypoints(m) = ny(m)*cos(f) + nx(m)*sin(f);
     end
-
-    %push out based on tip direction
-    % final_xpoints = copy_nx;
-    % final_ypoints = copy_ny;
-    % petalnum = 0;
-
-    % for m = 1:totalpoints-1
-    %     if any(m == Breaks)
-    %         petalnum = petalnum + 1;
-    %     end
-    %     final_xpoints(m) = copy_nx(m) + (xpoints(halfLoop + (numberOfFrames * petalnum)) *1.5);
-    %     final_ypoints(m) = copy_ny(m) + (ypoints(halfLoop + (numberOfFrames * petalnum)) *1.5);
-    % end
-%     final_xpoints = final_xpoints(1:length(final_xpoints-2));
-%     final_ypoints = final_ypoints(1:length(final_ypoints-2));
 
 end
 
