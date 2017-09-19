@@ -729,7 +729,7 @@ function [] = attentionScreen(screenInfoMap, colorsMap)
         thisDotSize = max(4, maxDotSize .* scaleFactor);
 
 
-        Screen('FillRect', window, colorsMap('rgbgrey'), bgRect);
+        % Screen('FillRect', window, colorsMap('rgbgrey'), bgRect);
         % Draw all of our dots to the screen in a single line of code adding
         % the sine oscilation to the X coordinates of the dots
         Screen('DrawDots', window, [xPosVector; yPosVector] .* scaleFactor,...
