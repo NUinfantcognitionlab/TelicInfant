@@ -382,8 +382,7 @@ end
 %%%%%%%%%
 % FUNCTIONS FOR EVENTS
 
-% manages running the events condition for an amount of time. Uses generateEventFrames to generate a set of frames,
-% and drawEventFrame to draw each event frame by frame until time is up
+% manages running the events condition for an amount of time.
 function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType)
     % A bunch of info retrieval up front to avoid dealing with maps during the stimulus presentation
     parametersKeyList = calculationsMap('parametersKeyList');
@@ -481,29 +480,6 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
             end
         end
         f = f+1;
-    end
-end
-
-% Generate a set of frames (x and y coordinate pairs, one per frame) for one set of loops
-% I'm not using the maps here, since this gets called during running quite a bit and I want to make sure it doesn't bog down the runtime
-function [xpoints, ypoints] = generateEventFrames(ifi, scale, minSpace, breakFrames, xCenter, yCenter, numberOfLoops, timePerAnimation, ellipseScale, breakType)
-    % calculate the number of frames needed in each loop based on the time the animation should take, the number of loops, and the screen refresh rate
-    % also, subtract time to include frames for break pauses here
-    framesPerLoop = round((timePerAnimation/numberOfLoops) / ifi) + 1 - breakFrames;
-
-    [xpoints, ypoints] = getEllipseSetPoints(numberOfLoops, framesPerLoop, ellipseScale);
-    xpoints = (xpoints .* scale) + xCenter;
-    ypoints = (ypoints .* scale) + yCenter;
-
-    % create the breakList and sort it biggest to smallest, so inserting frames for the breaks are easier
-    breakList = sort(generateBreakList(breakType, numel(xpoints), numberOfLoops, minSpace), 'descend');
-
-    % at each point in the breaklist, copy that point, matrep to make a matrix of that value breakframes times over, then insert it
-    for i = breakList
-        xRepeat = repelem(xpoints(i), breakFrames);
-        yRepeat = repelem(ypoints(i), breakFrames);
-        xpoints = [xpoints(1:i) xRepeat xpoints(i+1:end)];
-        ypoints = [ypoints(1:i) yRepeat ypoints(i+1:end)];
     end
 end
 
