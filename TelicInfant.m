@@ -424,12 +424,15 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
     constantParams = paramValues(parametersKeyList(1,1),:);
     alternatingParams = paramValues(parametersKeyList(1,2),:);
     p=2;
+
     % generate the ellipse sets, and set the current animation Length (the number of frames to run to for this set) to whichever is longer)
+    a_framesPerLoop = round((timePerAnimation/constantParams(1)) / ifi) + 1 - breakFrames;
+    b_framesPerLoop = round((timePerAnimation/alternatingParams(1)) / ifi) + 1 - breakFrames;
     [constant_xpoints constant_ypoints constant_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
-    constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+    constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, a_framesPerLoop);
     [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constant_breakList, breakFrames);
     [alternating_xpoints alternating_ypoints alternating_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
-    alternatingParams(1), alternatingParams(2), screenInfoMap('stimXpixels')*2, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+    alternatingParams(1), alternatingParams(2), screenInfoMap('stimXpixels')*2, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, b_framesPerLoop);
     [alternating_xpoints, alternating_ypoints] = addBreakFrames(alternating_xpoints, alternating_ypoints, alternating_breakList, breakFrames);
     % frame indexing variable f, parameter indexing variable p
     f=1;
@@ -447,11 +450,13 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
                 constantParams = paramValues(parametersKeyList(p,1),:);
                 alternatingParams = paramValues(parametersKeyList(p,2),:);
                 % generate a new set of animations
+                a_framesPerLoop = round((timePerAnimation/constantParams(1)) / ifi) + 1 - breakFrames;
+                b_framesPerLoop = round((timePerAnimation/alternatingParams(1)) / ifi) + 1 - breakFrames;
                 [constant_xpoints constant_ypoints constant_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
-                constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+                constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, a_framesPerLoop);
                 [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constant_breakList, breakFrames);
                 [alternating_xpoints alternating_ypoints alternating_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
-                alternatingParams(1), alternatingParams(2), screenInfoMap('stimXpixels')*2, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+                alternatingParams(1), alternatingParams(2), screenInfoMap('stimXpixels')*2, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, b_framesPerLoop);
                 [alternating_xpoints, alternating_ypoints] = addBreakFrames(alternating_xpoints, alternating_ypoints, alternating_breakList, breakFrames);
                 % and reset f and the currentAnimationLength, but increment p
                 f=1;
