@@ -4,14 +4,47 @@ function [] = generateParameters()
     parametersKeyList = calculationsMap('parametersKeyList');
     translatedParameters = calculationsMap('translatedParameters');
 
+    %TODO: MAKE THIS HANDLE NAT & RANDOM SEPARATELY
     for p = 1:size(parametersKeyList, 1)
         constantParams = translatedParameters(parametersKeyList(p,1),:);
         alternatingParams = translatedParameters(parametersKeyList(p,2),:);
-        % generate constant stimuli
+        disp(constantParams(1))
+        disp(constantParams(2))
+        scale = calculationsMap('scale');
+        
+
+        % if strcmp(screenside, 'left')
+        %     xCenter = screenInfoMap('leftxCenter');
+        %     xsideoffset = 0;
+        % else
+        %     xCenter = screenInfoMap('rightxCenter');
+        %     xsideoffset = screenInfoMap('stimXpixels')*2;
+        % end
+
+        gridCoordinates = generateGrid(calculationsMap('xGridSpaces'), calculationsMap('yGridSpaces'));
+        twoscalegridCoordinates = generateGrid(2,4);
+        gridPositions = [1:(calculationsMap('xGridSpaces')*calculationsMap('yGridSpaces'))];
+        gridPositions = gridPositions(randperm(length(gridPositions)));
+
+        twoscalegridPositions = [1:(2*4)];
+        twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
+
+        % generate const, right, nat
+        %TODO: check for double scale??
+        [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
+        constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+        plot(xpoints, ypoints)
+        % [xpoints ypoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
+        % numberOfLoops, ellipseScale, xsideoffset, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+        % plot(xpoints, ypoints)
+        break;
+
+        %generate constant stream:
         % check constant stimuli for overlap/off-screen
         % generate alternating stimuli
         % check alternating stimuli for overlap/off-screen
-        % save to csv as four rows: constant xpoints, constant ypoints, alternating xpoints, alternating ypoints
+        % save to csv as six rows: constant xpoints, constant ypoints, alternating xpoints, alternating ypoints
+        % TODO: also inculde break list
     end
     
 
@@ -25,6 +58,66 @@ end
 
 
 
+
+% Generates the x-y coordinate pairs for the ellipses on the grid, but does not draw them.
+function [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
+  numberOfLoops, ellipseScale, xsideoffset, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, framesPerLoop)
+    xpoints = [];
+    ypoints = [];
+    breakList = [];
+    for i = 1:numberOfLoops
+        [xEllipse, yEllipse] = plotEllipse(framesPerLoop, ellipseScale);
+        [xEllipse, yEllipse] = rotateEllipse(xEllipse, yEllipse);
+        xEllipse = xEllipse .* scale;
+        yEllipse = yEllipse .* scale;
+
+        % if the scale is big, use the smaller grid. otherwise, use the normal grid
+        if(ellipseScale==2)
+            [xEllipse, yEllipse] = transposeEllipse(screenInfoMap, xEllipse, yEllipse, xsideoffset, twoscalegridCoordinates(twoscalegridPositions(i),:));
+        else
+            [xEllipse, yEllipse] = transposeEllipse(screenInfoMap, xEllipse, yEllipse, xsideoffset, gridCoordinates(gridPositions(i),:));
+        end
+
+        xpoints = [xpoints xEllipse];
+        ypoints = [ypoints yEllipse];
+        breakList = [breakList numel(xpoints)];
+    end
+end
+
+function [processedxPoints processedyPoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
+  numberOfLoops, ellipseScale, xsideoffset, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, framesPerLoop)
+    [xpoints, ypoints] = getEllipseSetPoints(numberOfLoops, framesPerLoop, ellipseScale);
+    % sort the breaks by ascending to deal with each chunk of points separately
+    breakList = sort(generateBreakList('random', numel(xpoints), numberOfLoops, calculationsMap('minSpace')), 'ascend');
+    % placeholder for breaking up the points and index for progressing through grid positions
+    tempi = 1;
+    gridIndex = 1;
+    processedxPoints = [];
+    processedyPoints = [];
+    for i = breakList(1:end)
+        % get the points from the previous index to the next
+        currentxPoints = xpoints(tempi:i);
+        currentyPoints = ypoints(tempi:i);
+        % rotate and transpose
+        [currentxPoints, currentyPoints] = rotateSection(currentxPoints, currentyPoints);
+        currentxPoints = currentxPoints .* scale;
+        currentyPoints = currentyPoints .* scale;
+
+        % if the scale is big, use the smaller grid. otherwise, use the normal grid
+        if(ellipseScale==2)
+            [currentxPoints, currentyPoints] = transposeEllipse(screenInfoMap, currentxPoints, currentyPoints, xsideoffset, twoscalegridCoordinates(twoscalegridPositions(gridIndex),:));
+        else
+            [currentxPoints, currentyPoints] = transposeEllipse(screenInfoMap, currentxPoints, currentyPoints, xsideoffset, gridCoordinates(gridPositions(gridIndex),:));
+        end
+
+        processedxPoints = [processedxPoints currentxPoints];
+        processedyPoints = [processedyPoints currentyPoints];
+
+        % reset iterators
+        tempi = i;
+        gridIndex = gridIndex + 1;
+    end
+end
 
 %Generate a set of x,y points for a single ellipse
 function [xpoints, ypoints] = plotEllipse(numberOfFrames, ellipseScale);
