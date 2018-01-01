@@ -8,7 +8,7 @@ function [] = TelicInfant()
     breakType = breakTypeInputcheck(condition);
 
     %runs a bunch of Psychtoolbox setup and variable calculation, and returns some hashmaps storing that information for later retrieval
-    % calculationsMap : framesPerObjectLoop, framesPerLoop, minSpace, breakTime, displayTime, blankscreenTime, scale, xGridSpaces, yGridSpaces, paramValues, parametersKeyList
+    % calculationsMap : framesPerObjectLoop, framesPerLoop, minSpace, breakTime, displayTime, blankscreenTime, scale, xGridSpaces, yGridSpaces, translatedParameters, parametersKeyList
     % colorsMap : screenBlack, screenWhite, screenGrey, rgbgrey
     % screenInfoMap : window, vbl, ifi, baseRect, screenXpixels, screenYpixels, stimXpixels, xCenter, yCenter, leftxCenter, rightxCenter, screenNumber, imageTexture
     [calculationsMap, colorsMap, screenInfoMap] = runSetup();
@@ -45,7 +45,7 @@ end
 function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType)
     parametersKeyList = calculationsMap('parametersKeyList');
     p = 1;
-    paramValues = calculationsMap('paramValues');
+    translatedParameters = calculationsMap('translatedParameters');
     % this boolean is calculated up here to make sure the conditional during stim presentation is as fast as possible
     leftAlternating = strcmp(alternatingSide, 'left');
     finalTime = datenum(clock + [0, 0, 0, 0, 0, 20]);
@@ -59,8 +59,8 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
     while datenum(clock) < finalTime
         % read parameters from the list based on the current trial number
         % col 2 is alternating, and 1 is constant. Here, xparam is constant and yparam is alternating. Vice-versa after the else
-        constantParams = paramValues(parametersKeyList(p,1),:);
-        alternatingParams = paramValues(parametersKeyList(p,2),:);
+        constantParams = translatedParameters(parametersKeyList(p,1),:);
+        alternatingParams = translatedParameters(parametersKeyList(p,2),:);
         if leftAlternating
             % because of the projector mirroring, putting the alternation on the right of the screen will be on the left of the projector screen
             showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, generationFunction, constantParams(1), constantParams(2), alternatingParams(1), alternatingParams(2));
@@ -406,7 +406,7 @@ end
 function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType)
     % A bunch of info retrieval up front to avoid dealing with maps during the stimulus presentation
     parametersKeyList = calculationsMap('parametersKeyList');
-    paramValues = calculationsMap('paramValues');
+    translatedParameters = calculationsMap('translatedParameters');
     leftAlternating = strcmp(alternatingSide, 'left');
     finalTime = datenum(clock + [0, 0, 0, 0, 0, 25]);
     blankscreenTime = calculationsMap('blankscreenTime');
@@ -440,8 +440,8 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
     end
 
     % set up parameter cycle
-    constantParams = paramValues(parametersKeyList(1,1),:);
-    alternatingParams = paramValues(parametersKeyList(1,2),:);
+    constantParams = translatedParameters(parametersKeyList(1,1),:);
+    alternatingParams = translatedParameters(parametersKeyList(1,2),:);
     p=2;
 
     % generate the ellipse sets, and set the current animation Length (the number of frames to run to for this set) to whichever is longer)
@@ -466,8 +466,8 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
                 screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + 0.5 * ifi);
 
                 % retrieve new parameters
-                constantParams = paramValues(parametersKeyList(p,1),:);
-                alternatingParams = paramValues(parametersKeyList(p,2),:);
+                constantParams = translatedParameters(parametersKeyList(p,1),:);
+                alternatingParams = translatedParameters(parametersKeyList(p,2),:);
                 % generate a new set of animations
                 a_framesPerLoop = round((timePerAnimation/constantParams(1)) / ifi) + 1 - breakFrames;
                 b_framesPerLoop = round((timePerAnimation/alternatingParams(1)) / ifi) + 1 - breakFrames;
@@ -901,7 +901,7 @@ function [calculationsMap, colorsMap, screenInfoMap] = runSetup()
     % 2: 4 ovals, object scale 2
     % 3: 8 ovals, object scale 1
     % 4: 8 ovals, object scale .5
-    paramValues = [4, 1;
+    translatedParameters = [4, 1;
                    4, 2;
                    8, 1;
                    8,.5];
@@ -911,8 +911,8 @@ function [calculationsMap, colorsMap, screenInfoMap] = runSetup()
     % info I need to write to the screen, without writing and re-writing all
     % the variables in order to the argument list.
     calculationsMap = containers.Map({'framesPerObjectLoop', 'framesPerLoop', 'minSpace', 'breakTime', ...
-    'displayTime', 'blankscreenTime', 'scale', 'xGridSpaces', 'yGridSpaces', 'paramValues', 'parametersKeyList'}, {framesPerObjectLoop, framesPerLoop, minSpace, ...
-    breakTime, displayTime, blankscreenTime, scale, xGridSpaces, yGridSpaces, paramValues, parametersKeyList});
+    'displayTime', 'blankscreenTime', 'scale', 'xGridSpaces', 'yGridSpaces', 'translatedParameters', 'parametersKeyList'}, {framesPerObjectLoop, framesPerLoop, minSpace, ...
+    breakTime, displayTime, blankscreenTime, scale, xGridSpaces, yGridSpaces, translatedParameters, parametersKeyList});
     colorsMap = containers.Map({'screenBlack', 'screenWhite', 'screenGrey', ...
     'rgbgrey'}, {black, white, grey, rgbgrey});
     screenInfoMap = containers.Map({'window', 'vbl', 'ifi', 'baseRect', ...
