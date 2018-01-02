@@ -4,12 +4,10 @@ function [] = generateParameters()
     parametersKeyList = calculationsMap('parametersKeyList');
     translatedParameters = calculationsMap('translatedParameters');
 
-    %TODO: MAKE THIS HANDLE NAT & RANDOM SEPARATELY
     for p = 1:size(parametersKeyList, 1)
         constantParams = translatedParameters(parametersKeyList(p,1),:);
         alternatingParams = translatedParameters(parametersKeyList(p,2),:);
-        disp(constantParams(1))
-        disp(constantParams(2))
+
         scale = calculationsMap('scale');
         
 
@@ -28,33 +26,35 @@ function [] = generateParameters()
 
         twoscalegridPositions = [1:(2*4)];
         twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
-
-        % generate const, right, nat
-        %TODO: check for double scale??
-        [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
-        constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
-        plot(xpoints, ypoints)
-        % [xpoints ypoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
-        % numberOfLoops, ellipseScale, xsideoffset, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
-        % plot(xpoints, ypoints)
+        generationInvalid = true;
+        while generationInvalid
+            % generate const, right, nat
+            [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
+            constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+            % generate const, right, unnat
+            % [xpoints ypoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
+            % constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+            
+            %for every point in xpoints
+            generationInvalid = false;
+            %TODO: add breaklist separation calculation to check for overlap on separate pieces
+            for p = 1:size(xpoints, 2)
+                if xpoints(p) <0 || xpoints(p)>screenInfoMap('stimXpixels') || ypoints(p)<0 || ypoints(p)>screenInfoMap('screenYpixels')
+                    generationInvalid = true;
+                    break;
+                end
+                %for every point in other breaklist sections, check if within 3 pixels
+                %Use distance formula
+            end
+        end
+        plot(xpoints, ypoints);
         break;
-
-        %generate constant stream:
-        % check constant stimuli for overlap/off-screen
-        % generate alternating stimuli
-        % check alternating stimuli for overlap/off-screen
-        % save to csv as six rows: constant xpoints, constant ypoints, alternating xpoints, alternating ypoints
-        % TODO: also inculde break list
     end
     
 
     sca;
     Priority(0);
 end
-
-
-
-
 
 
 
@@ -369,4 +369,92 @@ function [calculationsMap, colorsMap, screenInfoMap] = runSetup()
     'rgbgrey'}, {black, white, grey, rgbgrey});
     screenInfoMap = containers.Map({'window', 'vbl', 'ifi', 'baseRect', ...
     'screenXpixels', 'screenYpixels', 'stimXpixels', 'xCenter', 'yCenter', 'leftxCenter', 'rightxCenter', 'screenNumber', 'imageTexture'}, {window, vbl, ifi, baseRect, screenXpixels, (screenYpixels/3)*3, stimXpixels, xCenter, yCenter, leftxCenter, rightxCenter, screenNumber, imageTexture});
+end
+
+function [xpoints, ypoints] = getEllipseSetPoints(numberOfLoops, framesPerLoop, ellipseScale)
+    %OK, so, the ellipses weren't lining up at the origin very well, so
+    %smoothframes designates a few frames to smooth this out. It uses fewer
+    %frames for the ellipse, and instead spends a few frames going from the
+    %end of the ellipse to the origin.
+    smoothframes = 0;
+    doublesmooth = smoothframes*2;
+    xpoints = [];
+    ypoints = [];
+    majorAxis = 2*ellipseScale;
+    minorAxis = 1*ellipseScale;
+    centerX = 0;
+    centerY = 0;
+    theta = linspace(0,2*pi,framesPerLoop-smoothframes);
+    %The orientation starts at 0, and ends at 360-360/numberOfLoops
+    %This is to it doesn't make a complete circle, which would have two
+    %overlapping ellipses.
+    orientation = linspace(0,360-round(360/numberOfLoops),numberOfLoops);
+    for i = 1:numberOfLoops
+        %orientation calculated from above
+        loopOri=orientation(i)*pi/180;
+
+        %Start with the basic, unrotated ellipse
+        initx = (majorAxis/2) * sin(theta) + centerX;
+        inity = (minorAxis/2) * cos(theta) + centerY;
+
+        %Then rotate it
+        x = (initx-centerX)*cos(loopOri) - (inity-centerY)*sin(loopOri) + centerX;
+        y = (initx-centerX)*sin(loopOri) + (inity-centerY)*cos(loopOri) + centerY;
+        %then push it out based on the rotation
+        for m = 1:numel(x)
+            x2(m) = x(m) + (x(round(numel(x)*.75)) *1);
+            y2(m) = y(m) + (y(round(numel(y)*.75)) *1);
+        end
+
+        %It doesn't start from the right part of the ellipse, so I'm gonna
+        %shuffle it around so it does. (this is important I promise)
+        %It also adds in some extra frames to smooth the transition between
+        %ellipses
+        start = round((framesPerLoop-smoothframes)/4);
+        x3 = [x2(start:framesPerLoop-smoothframes) x2(2:start) linspace(x2(start),0,smoothframes)];
+        y3 = [y2(start:framesPerLoop-smoothframes) y2(2:start) linspace(y2(start),0,smoothframes)];
+        %Finally, accumulate the points in full points arrays for easy graphing
+        %and drawing
+        xpoints = [xpoints x3];
+        ypoints = [ypoints y3];
+    end
+end
+
+% generates a list of break points to separate ellipses/pieces naturally or randomly
+function [Breaks] = generateBreakList(breakType, totalpoints, loops, minSpace)
+    if strcmp(breakType, 'equal')
+        %Breaks = 1 : totalpoints/loops : totalpoints;
+        Breaks = linspace(totalpoints/loops, totalpoints, loops);
+        Breaks = arrayfun(@(x) round(x),Breaks);
+
+    elseif strcmp(breakType, 'random')
+        %tbh I found this on stackoverflow and have no idea how it works
+        %http://stackoverflow.com/questions/31971344/generating-random-sequence-with-minimum-distance-between-elements-matlab/31977095#31977095
+        if loops >1
+            numberOfBreaks = loops - 1;
+            %The -10 accounts for some distance away from the last point,
+            %which I add on separately.
+            E = (totalpoints-10)-(numberOfBreaks-1)*minSpace;
+
+            ro = rand(numberOfBreaks+1,1);
+            rn = E*ro(1:numberOfBreaks)/sum(ro);
+
+            s = minSpace*ones(numberOfBreaks,1)+rn;
+
+            Breaks=cumsum(s)-1;
+
+            Breaks = reshape(Breaks, 1, length(Breaks));
+            Breaks = arrayfun(@(x) round(x),Breaks);
+
+            %I'm adding one break on at the end, otherwise I'll end up with
+            %more "pieces" than in the equal condition.
+            Breaks = [Breaks totalpoints];
+        else
+            Breaks = [totalpoints];
+        end
+        
+
+    else
+        Breaks = [];
+    end
 end
