@@ -4,6 +4,8 @@ function [] = generateParameters()
     parametersKeyList = calculationsMap('parametersKeyList');
     translatedParameters = calculationsMap('translatedParameters');
 
+    constLeftNat = [];
+
     for p = 1:size(parametersKeyList, 1)
         constantParams = translatedParameters(parametersKeyList(p,1),:);
         alternatingParams = translatedParameters(parametersKeyList(p,2),:);
@@ -48,8 +50,11 @@ function [] = generateParameters()
             end
         end
         plot(xpoints, ypoints);
+        constLeftNat = [constLeftNat;xpoints;ypoints];
         break;
     end
+
+    csvwrite('constLeftNat.csv',constLeftNat);
     
 
     sca;
