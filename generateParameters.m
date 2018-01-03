@@ -4,7 +4,10 @@ function [] = generateParameters()
     parametersKeyList = calculationsMap('parametersKeyList');
     translatedParameters = calculationsMap('translatedParameters');
 
-    constLeftNat = [];
+    constNat = [];
+    constUnat = [];
+    AlternateNat = [];
+    AlternateUnnat = [];
 
     for p = 1:size(parametersKeyList, 1)
         constantParams = translatedParameters(parametersKeyList(p,1),:);
@@ -28,33 +31,69 @@ function [] = generateParameters()
 
         twoscalegridPositions = [1:(2*4)];
         twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
+
+
+        %CONST NAT
         generationInvalid = true;
         while generationInvalid
             % generate const, right, nat
-            [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
-            constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
-            % generate const, right, unnat
-            % [xpoints ypoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
+            % [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
             % constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+            % generate const, right, unnat
+            [xpoints ypoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
+            constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
             
             %for every point in xpoints
             generationInvalid = false;
             %TODO: add breaklist separation calculation to check for overlap on separate pieces
-            for p = 1:size(xpoints, 2)
-                if xpoints(p) <0 || xpoints(p)>screenInfoMap('stimXpixels') || ypoints(p)<0 || ypoints(p)>screenInfoMap('screenYpixels')
+            previousBreak = 1;
+            nextBreak = breakList(1);
+            breakIndex = 2;
+            
+            for q = 1:size(xpoints, 2)
+                if xpoints(q) <40 || xpoints(q)>screenInfoMap('stimXpixels')-40 || ypoints(q)<40 || ypoints(q)>screenInfoMap('screenYpixels')-40
+                    disp('off screen!!')
                     generationInvalid = true;
                     break;
                 end
-                %for every point in other breaklist sections, check if within 3 pixels
+
+                if q == nextBreak    
+                    if breakIndex <= numel(breakList)
+                        previousBreak = nextBreak;
+                        nextBreak = breakList(breakIndex);
+                        breakIndex = breakIndex + 1;
+                        continue;
+                    end
+                end
+                % if a point is the next break, shift the sections to examine (the +/- 1s are to exclude checking breaks with each other)
+                pointRange = [1:previousBreak-1,nextBreak:size(xpoints, 2)-1];
+                if previousBreak == 1
+                    pointRange = [nextBreak:size(xpoints, 2)-1];
+                end
+                for r = pointRange
+                    if pdist([xpoints(q),ypoints(q);xpoints(r),ypoints(r)]) < 3;
+                        disp('overlap!!')
+                        generationInvalid = true;
+                        break;
+                    end
+                end
+
+                
+                %for every point in other breaklist sections, check if within 3 pixels 
                 %Use distance formula
+                if generationInvalid
+                    break;
+                end
             end
+            
         end
         plot(xpoints, ypoints);
-        constLeftNat = [constLeftNat;xpoints;ypoints];
+        constNat = [constNat;xpoints;ypoints];
         break;
     end
 
-    csvwrite('constLeftNat.csv',constLeftNat);
+    %TODO: REMEMBER TO ADD THE XSIDEOFFSET TO XPOINTS WHEN PLOTTING!!!!!!!
+    csvwrite('constNat.csv',constNat);
     
 
     sca;
@@ -78,9 +117,9 @@ function [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculations
 
         % if the scale is big, use the smaller grid. otherwise, use the normal grid
         if(ellipseScale==2)
-            [xEllipse, yEllipse] = transposeEllipse(screenInfoMap, xEllipse, yEllipse, xsideoffset, twoscalegridCoordinates(twoscalegridPositions(i),:));
+            [xEllipse, yEllipse] = transposeEllipse(screenInfoMap, xEllipse, yEllipse, twoscalegridCoordinates(twoscalegridPositions(i),:));
         else
-            [xEllipse, yEllipse] = transposeEllipse(screenInfoMap, xEllipse, yEllipse, xsideoffset, gridCoordinates(gridPositions(i),:));
+            [xEllipse, yEllipse] = transposeEllipse(screenInfoMap, xEllipse, yEllipse, gridCoordinates(gridPositions(i),:));
         end
 
         xpoints = [xpoints xEllipse];
@@ -110,9 +149,9 @@ function [processedxPoints processedyPoints breakList] = generateRandomCoordinat
 
         % if the scale is big, use the smaller grid. otherwise, use the normal grid
         if(ellipseScale==2)
-            [currentxPoints, currentyPoints] = transposeEllipse(screenInfoMap, currentxPoints, currentyPoints, xsideoffset, twoscalegridCoordinates(twoscalegridPositions(gridIndex),:));
+            [currentxPoints, currentyPoints] = transposeEllipse(screenInfoMap, currentxPoints, currentyPoints, twoscalegridCoordinates(twoscalegridPositions(gridIndex),:));
         else
-            [currentxPoints, currentyPoints] = transposeEllipse(screenInfoMap, currentxPoints, currentyPoints, xsideoffset, gridCoordinates(gridPositions(gridIndex),:));
+            [currentxPoints, currentyPoints] = transposeEllipse(screenInfoMap, currentxPoints, currentyPoints, gridCoordinates(gridPositions(gridIndex),:));
         end
 
         processedxPoints = [processedxPoints currentxPoints];
@@ -243,8 +282,8 @@ function [gridCoordinates] = generateEventsGrid(xspaces, yspaces)
 end
 
 % transposes one ellipse to the appropriate position on the grid
-function [xpoints ypoints] = transposeEllipse(screenInfoMap, xpoints, ypoints, xsideoffset, gridPosition)
-    xpoints = xpoints + xsideoffset + (gridPosition(1)*screenInfoMap('stimXpixels'));
+function [xpoints ypoints] = transposeEllipse(screenInfoMap, xpoints, ypoints, gridPosition)
+    xpoints = xpoints + (gridPosition(1)*screenInfoMap('stimXpixels'));
     ypoints = ypoints + (gridPosition(2)*screenInfoMap('screenYpixels'));
 end
 
