@@ -5,9 +5,14 @@ function [] = generateParameters()
     translatedParameters = calculationsMap('translatedParameters');
 
     constNat = [];
-    constUnat = [];
+    constUnnat = [];
     AlternateNat = [];
     AlternateUnnat = [];
+
+    constNatBreaks = [];
+    constUnnatBreaks = [];
+    AlternateNatBreaks = [];
+    AlternateUnnatBreaks = [];
 
     for p = 1:size(parametersKeyList, 1)
         constantParams = translatedParameters(parametersKeyList(p,1),:);
@@ -35,21 +40,18 @@ function [] = generateParameters()
 
         %CONST NAT
         generationInvalid = true;
+        %while there isn't a valid generated set of points
         while generationInvalid
-            % generate const, right, nat
-            % [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
-            % constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
-            % generate const, right, unnat
-            [xpoints ypoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
-            constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+            %generate new set of points
+            [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
+            constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));            
             
-            %for every point in xpoints
             generationInvalid = false;
-            %TODO: add breaklist separation calculation to check for overlap on separate pieces
             previousBreak = 1;
             nextBreak = breakList(1);
             breakIndex = 2;
             
+            %for every point in xpoints
             for q = 1:size(xpoints, 2)
                 if xpoints(q) <40 || xpoints(q)>screenInfoMap('stimXpixels')-40 || ypoints(q)<40 || ypoints(q)>screenInfoMap('screenYpixels')-40
                     disp('off screen!!')
@@ -78,22 +80,192 @@ function [] = generateParameters()
                     end
                 end
 
-                
-                %for every point in other breaklist sections, check if within 3 pixels 
-                %Use distance formula
                 if generationInvalid
                     break;
                 end
             end
             
         end
-        plot(xpoints, ypoints);
+        % plot(xpoints, ypoints);
         constNat = [constNat;xpoints;ypoints];
-        break;
+        constNatBreaks = [constNatBreaks;breakList];
+        % break;
+
+        %%%%%%%%%%%%%%%%%%CONST UNNAT
+        generationInvalid = true;
+        while generationInvalid
+            %generate new set of points
+            [xpoints ypoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
+            constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+             
+            generationInvalid = false;
+            previousBreak = 1;
+            nextBreak = breakList(1);
+            breakIndex = 2;
+            
+            %for every point in xpoints
+            for q = 1:size(xpoints, 2)
+                if xpoints(q) <40 || xpoints(q)>screenInfoMap('stimXpixels')-40 || ypoints(q)<40 || ypoints(q)>screenInfoMap('screenYpixels')-40
+                    disp('off screen!!')
+                    generationInvalid = true;
+                    break;
+                end
+
+                if q == nextBreak    
+                    if breakIndex <= numel(breakList)
+                        previousBreak = nextBreak;
+                        nextBreak = breakList(breakIndex);
+                        breakIndex = breakIndex + 1;
+                        continue;
+                    end
+                end
+                % if a point is the next break, shift the sections to examine (the +/- 1s are to exclude checking breaks with each other)
+                pointRange = [1:previousBreak-1,nextBreak:size(xpoints, 2)-1];
+                if previousBreak == 1
+                    pointRange = [nextBreak:size(xpoints, 2)-1];
+                end
+                for r = pointRange
+                    if pdist([xpoints(q),ypoints(q);xpoints(r),ypoints(r)]) < 3;
+                        disp('overlap!!')
+                        generationInvalid = true;
+                        break;
+                    end
+                end
+
+                if generationInvalid
+                    break;
+                end
+            end
+            
+        end
+        % plot(xpoints, ypoints);
+        constUnnat = [constUnnat;xpoints;ypoints];
+        constUnnatBreaks = [constUnnatBreaks;breakList];
+        % break;
+
+
+
+        %%%%%%%%%%%%%%%%%%ALTERNATE UNNAT
+        generationInvalid = true;
+        while generationInvalid
+            [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
+            constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+            
+            generationInvalid = false;
+            previousBreak = 1;
+            nextBreak = breakList(1);
+            breakIndex = 2;
+            
+            %for every point in xpoints
+            for q = 1:size(xpoints, 2)
+                if xpoints(q) <40 || xpoints(q)>screenInfoMap('stimXpixels')-40 || ypoints(q)<40 || ypoints(q)>screenInfoMap('screenYpixels')-40
+                    disp('off screen!!')
+                    generationInvalid = true;
+                    break;
+                end
+
+                if q == nextBreak    
+                    if breakIndex <= numel(breakList)
+                        previousBreak = nextBreak;
+                        nextBreak = breakList(breakIndex);
+                        breakIndex = breakIndex + 1;
+                        continue;
+                    end
+                end
+                % if a point is the next break, shift the sections to examine (the +/- 1s are to exclude checking breaks with each other)
+                pointRange = [1:previousBreak-1,nextBreak:size(xpoints, 2)-1];
+                if previousBreak == 1
+                    pointRange = [nextBreak:size(xpoints, 2)-1];
+                end
+                for r = pointRange
+                    if pdist([xpoints(q),ypoints(q);xpoints(r),ypoints(r)]) < 3;
+                        disp('overlap!!')
+                        generationInvalid = true;
+                        break;
+                    end
+                end
+
+                if generationInvalid
+                    break;
+                end
+            end
+            
+        end
+        % plot(xpoints, ypoints);
+        AlternateNat = [AlternateNat;xpoints;ypoints];
+        AlternateNatBreaks = [AlternateNatBreaks;breakList];
+        % break;
+
+
+
+        %%%%%%%%%%%%%%%%%%ALTERNATE UNNAT
+        generationInvalid = true;
+        while generationInvalid
+            % generate const, right, nat
+            % [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
+            % constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+            % generate const, right, unnat
+            [xpoints ypoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
+            constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+            
+            
+            generationInvalid = false;
+            previousBreak = 1;
+            nextBreak = breakList(1);
+            breakIndex = 2;
+            
+            %for every point in xpoints
+            for q = 1:size(xpoints, 2)
+                if xpoints(q) <40 || xpoints(q)>screenInfoMap('stimXpixels')-40 || ypoints(q)<40 || ypoints(q)>screenInfoMap('screenYpixels')-40
+                    disp('off screen!!')
+                    generationInvalid = true;
+                    break;
+                end
+
+                if q == nextBreak    
+                    if breakIndex <= numel(breakList)
+                        previousBreak = nextBreak;
+                        nextBreak = breakList(breakIndex);
+                        breakIndex = breakIndex + 1;
+                        continue;
+                    end
+                end
+                % if a point is the next break, shift the sections to examine (the +/- 1s are to exclude checking breaks with each other)
+                pointRange = [1:previousBreak-1,nextBreak:size(xpoints, 2)-1];
+                if previousBreak == 1
+                    pointRange = [nextBreak:size(xpoints, 2)-1];
+                end
+                for r = pointRange
+                    if pdist([xpoints(q),ypoints(q);xpoints(r),ypoints(r)]) < 3;
+                        disp('overlap!!')
+                        generationInvalid = true;
+                        break;
+                    end
+                end
+
+                if generationInvalid
+                    break;
+                end
+            end
+            
+        end
+        % plot(xpoints, ypoints);
+        AlternateUnnat = [AlternateUnnat;xpoints;ypoints];
+        AlternateUnnatBreaks = [AlternateUnnatBreaks;breakList];
+        % break;
+        
     end
 
     %TODO: REMEMBER TO ADD THE XSIDEOFFSET TO XPOINTS WHEN PLOTTING!!!!!!!
-    csvwrite('constNat.csv',constNat);
+    csvwrite('ConstNat.csv',constNat);
+    csvwrite('ConstUnnat.csv',constUnnat);
+    csvwrite('AlternateNat.csv',AlternateNat);
+    csvwrite('AlternateUnnat.csv',AlternateUnnat);
+
+    csvwrite('ConstNatBreaks.csv',constNatBreaks);
+    csvwrite('ConstUnnatBreaks.csv',constUnnatBreaks);
+    csvwrite('AlternateNatBreaks.csv',AlternateNatBreaks);
+    csvwrite('AlternateUnnatBreaks.csv',AlternateUnnatBreaks);
     
 
     sca;
