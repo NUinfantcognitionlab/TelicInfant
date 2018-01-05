@@ -14,6 +14,47 @@ function [] = TelicInfant()
     [calculationsMap, colorsMap, screenInfoMap] = runSetup();
     timePerAnimation = 4.5;
 
+    
+
+    % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
+    % alternatingSide = 'right';
+    % breakType = 'random';
+
+    for t = 1:4
+        attentionScreen(screenInfoMap, colorsMap);
+        if strcmp(displayType, 'object')
+            runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
+        else
+            runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType);
+        end
+        if strcmp(alternatingSide, 'left')
+            alternatingSide = 'right';
+        else
+            alternatingSide = 'left';
+        end
+    end
+    endingScreen(screenInfoMap, colorsMap);
+
+    sca
+    Priority(0);
+end
+
+function [] = TelicInfantOld()
+    % Set up initial conditions via the command line
+    condition = input('Condition e (event) or o (object): ', 's');
+    displayType = displayTypeInputcheck(condition);
+    condition = input('Condition r (right alternating) or l (left alternating): ', 's');
+    alternatingSide = alternatingInputcheck(condition);
+    condition = input('Condition nat (natural) or unnat (unnatural): ', 's');
+    breakType = breakTypeInputcheck(condition);
+
+    %runs a bunch of Psychtoolbox setup and variable calculation, and returns some hashmaps storing that information for later retrieval
+    % calculationsMap : framesPerObjectLoop, framesPerLoop, minSpace, breakTime, displayTime, blankscreenTime, scale, xGridSpaces, yGridSpaces, translatedParameters, parametersKeyList
+    % colorsMap : screenBlack, screenWhite, screenGrey, rgbgrey
+    % screenInfoMap : window, vbl, ifi, baseRect, screenXpixels, screenYpixels, stimXpixels, xCenter, yCenter, leftxCenter, rightxCenter, screenNumber, imageTexture
+    [calculationsMap, colorsMap, screenInfoMap] = runSetup();
+    timePerAnimation = 4.5;
+
     % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
     % alternatingSide = 'right';
     % breakType = 'random';
@@ -49,26 +90,32 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
     % this boolean is calculated up here to make sure the conditional during stim presentation is as fast as possible
     leftAlternating = strcmp(alternatingSide, 'left');
     finalTime = datenum(clock + [0, 0, 0, 0, 0, 20]);
+    parametersList = csvread('AlternateNat.csv',0,0);
+    parametersBreaksList = csvread('AlternateNatBreaks.csv',0,0);
     if strcmp(breakType, 'equal')
     
-        generationFunction = @drawNaturalObjectSet;
+        generationFunction = @drawObjectsFromPoints;
     else
-        generationFunction = @drawRandomObjectSet;
+        generationFunction = @drawObjectsFromPoints;
     end
 
     while datenum(clock) < finalTime
         % read parameters from the list based on the current trial number
         % col 2 is alternating, and 1 is constant. Here, xparam is constant and yparam is alternating. Vice-versa after the else
-        constantParams = translatedParameters(parametersKeyList(p,1),:);
-        alternatingParams = translatedParameters(parametersKeyList(p,2),:);
+        constantParams = [parametersList(p,:); parametersList(p+1,:)];
+        disp(constantParams(1,1:5))
+        disp(constantParams(2,1:5))
+        alternatingParams = [parametersList(p,:); parametersList(p+1,:)];
+        constantBreakList = parametersBreaksList(p,:)
+        alternatingBreakList = parametersBreaksList(p,:)
         if leftAlternating
             % because of the projector mirroring, putting the alternation on the right of the screen will be on the left of the projector screen
-            showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, generationFunction, constantParams(1), constantParams(2), alternatingParams(1), alternatingParams(2));
+            showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, constantParams(1,:), constantParams(2,:), constantBreakList, alternatingParams(1,:), alternatingParams(2,:), alternatingBreakList);
         else
-            showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, generationFunction, alternatingParams(1), alternatingParams(2), constantParams(1), constantParams(2));
+            showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, alternatingParams(1,:), alternatingParams(2,:), alternatingBreakList, constantParams(1,:), constantParams(2,:), constantBreakList);
         end
-        p = p+1;
-        if p > numel(parametersKeyList)/2
+        p = p+2;
+        if p > numel(parametersList)/2
             p = 0;
         end
     end
@@ -76,16 +123,59 @@ end
 
 % takes parameters for two sides of stimuli and draws both to the screen for the amount of time specified for the display
 % Uses generateObjectSet to generate the points for the object and draw them to the screen
-function [] = showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, generationFunction, leftLoops, leftSize, rightLoops, rightSize)
+function [] = showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, leftxpoints, leftypoints, leftBreaks, rightxpoints, rightypoints, rightBreaks)
     window = screenInfoMap('window');
     black = colorsMap('screenBlack');
-    generationFunction(calculationsMap, screenInfoMap, colorsMap, leftLoops, leftSize, ...
-        'left', black);
-    generationFunction(calculationsMap, screenInfoMap, colorsMap, rightLoops, rightSize, ...
-        'right', black);
+    % plot(leftxpoints, leftypoints)
+    
+    drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, ...
+        'left', leftxpoints, leftypoints, leftBreaks);
+    drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, ...
+        'right', rightxpoints, rightypoints, rightBreaks);
     screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + calculationsMap('blankscreenTime'));
     drawBlankScreen(screenInfoMap, colorsMap);
     screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl')+calculationsMap('displayTime'));
+end
+
+
+function [] = drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, ...
+  screenside, xpoints, ypoints, breakList)
+    scale = calculationsMap('scale');
+    framesPerLoop = calculationsMap('framesPerObjectLoop');
+    window = screenInfoMap('window');
+    black = colorsMap('screenBlack');
+    xGridSpaces = calculationsMap('xGridSpaces');
+    yGridSpaces = calculationsMap('yGridSpaces');
+
+    yCenter = screenInfoMap('yCenter');
+    if strcmp(screenside, 'left')
+        xCenter = screenInfoMap('leftxCenter');
+        % xsideoffset = 0;
+    else
+        xCenter = screenInfoMap('rightxCenter');
+        xpoints = xpoints + screenInfoMap('stimXpixels')*2;
+    end
+
+    totalpoints = numel(xpoints);
+    plot(xpoints, ypoints)
+    bgRect = CenterRectOnPointd(screenInfoMap('baseRect'), xCenter, yCenter);
+    Screen('FillRect', window, colorsMap('rgbgrey'), bgRect);
+    savepoint = 1;
+    for p = 1:totalpoints - 2
+        if ~any(p == breakList) && ~any(p+1 == breakList)
+            p
+            disp(xpoints(p))
+            disp(ypoints(p))
+            Screen('DrawLine', window, black, xpoints(p), ypoints(p), ...
+                xpoints(p+1), ypoints(p+1), 5);
+        else
+            Screen('DrawLine', window, black, xpoints(p), ypoints(p), ...
+                xpoints(savepoint), ypoints(savepoint), 5);
+            savepoint = p+1;
+        end
+    end
+    Screen('DrawLine', window, black, xpoints(totalpoints-1), ypoints(totalpoints-1), ...
+                xpoints(savepoint), ypoints(savepoint), 5);
 end
 
 % Draws sets of object stimuli to the screen, but DOESN'T flip the screen to make them visible.
@@ -796,7 +886,6 @@ end
 
 function [parameters] = readParameters()
   parameters = csvread('TelicInfantParameters.csv',1,0);
-  % disp(parameters(1,:))
 end
 
 function [imageTexture] = generateImgTexture(imagePath, screenYpixels, window)
