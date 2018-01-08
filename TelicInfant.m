@@ -21,9 +21,7 @@ function [] = TelicInfant()
     alternateParametersList = csvread(['Alternate', fileTypeString, '.csv'], 0, 0);
     alternateBreakList = csvread(['Alternate', fileTypeString, 'Breaks.csv'], 0, 0);
     constParametersList = csvread(['Const', fileTypeString, '.csv'], 0, 0);
-    constBreakList = csvread(['Const', fileTypeString, 'Breaks.csv'], 0, 0);
-
-    
+    constBreakList = csvread(['Const', fileTypeString, 'Breaks.csv'], 0, 0);    
 
     % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
     % alternatingSide = 'right';
@@ -59,7 +57,7 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
     translatedParameters = calculationsMap('translatedParameters');
     % this boolean is calculated up here to make sure the conditional during stim presentation is as fast as possible
     leftAlternating = strcmp(alternatingSide, 'left');
-    finalTime = datenum(clock + [0, 0, 0, 0, 0, 10]);
+    finalTime = datenum(clock + [0, 0, 0, 0, 0, 60]);
     
     if strcmp(breakType, 'equal')
         generationFunction = @drawObjectsFromPoints;
@@ -72,8 +70,8 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
         % constantParams contains both x and ypoints
         constantParams = [constParametersList(p,:); constParametersList(p+1,:)];
         alternatingParams = [alternateParametersList(p,:); alternateParametersList(p+1,:)];
-        constantBreakList = constBreakList(((p+1)/2),:)
-        alternatingBreakList = alternateBreakList(((p+1)/2),:)
+        constantBreakList = constBreakList(((p+1)/2),:);
+        alternatingBreakList = alternateBreakList(((p+1)/2),:);
         if leftAlternating
             % because of the projector mirroring, putting the alternation on the right of the screen will be on the left of the projector screen
             showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, breakType, constantParams(1,:), constantParams(2,:), constantBreakList, alternatingParams(1,:), alternatingParams(2,:), alternatingBreakList);
@@ -93,9 +91,6 @@ function [] = showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, break
     window = screenInfoMap('window');
     black = colorsMap('screenBlack');
     % plot(leftxpoints, leftypoints)
-
-    disp(leftxpoints(:, 1:5))
-    disp(rightxpoints(:, 1:5))
     
     drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, breakType, ...
         'left', leftxpoints, leftypoints, leftBreaks);
@@ -115,6 +110,12 @@ function [] = drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, b
     black = colorsMap('screenBlack');
     xGridSpaces = calculationsMap('xGridSpaces');
     yGridSpaces = calculationsMap('yGridSpaces');
+
+    %remove zeros from parameter generation
+    xpoints = xpoints(1:find(xpoints,1,'last'));
+    ypoints = ypoints(1:find(ypoints,1,'last'));
+    breakList = breakList(1:find(breakList,1,'last'));
+
 
     yCenter = screenInfoMap('yCenter');
     if strcmp(screenside, 'left')
@@ -459,8 +460,7 @@ function [] = runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alt
     parametersKeyList = calculationsMap('parametersKeyList');
     translatedParameters = calculationsMap('translatedParameters');
     leftAlternating = strcmp(alternatingSide, 'left');
-    %TODO: change the time to 60s
-    finalTime = datenum(clock + [0, 0, 0, 0, 0, 25]);
+    finalTime = datenum(clock + [0, 0, 0, 0, 0, 60]);
     blankscreenTime = calculationsMap('blankscreenTime');
     window = screenInfoMap('window');
     leftxCenter = screenInfoMap('leftxCenter');
@@ -481,6 +481,13 @@ function [] = runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alt
     alternating_ypoints = alternatingParams(2,:);
     constant_xpoints = constantParams(1,:);
     constant_ypoints = constantParams(2,:);
+
+    constant_xpoints = constant_xpoints(1:find(constant_xpoints,1,'last'));
+    constant_ypoints = constant_ypoints(1:find(constant_ypoints,1,'last'));
+    alternating_xpoints = alternating_xpoints(1:find(alternating_xpoints,1,'last'));
+    alternating_ypoints = alternating_ypoints(1:find(alternating_ypoints,1,'last'));
+    constantBreakList = constantBreakList(1:find(constantBreakList,1,'last'));
+    alternatingBreakList = alternatingBreakList(1:find(alternatingBreakList,1,'last'));
     p=3;
 
     [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constantBreakList, breakFrames);
@@ -505,6 +512,13 @@ function [] = runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alt
                 alternating_ypoints = alternatingParams(2,:);
                 constant_xpoints = constantParams(1,:);
                 constant_ypoints = constantParams(2,:);
+                %remove zeros
+                constant_xpoints = constant_xpoints(1:find(constant_xpoints,1,'last'));
+                constant_ypoints = constant_ypoints(1:find(constant_ypoints,1,'last'));
+                alternating_xpoints = alternating_xpoints(1:find(alternating_xpoints,1,'last'));
+                alternating_ypoints = alternating_ypoints(1:find(alternating_ypoints,1,'last'));
+                constantBreakList = constantBreakList(1:find(constantBreakList,1,'last'));
+                alternatingBreakList = alternatingBreakList(1:find(alternatingBreakList,1,'last'));
                 p=p+2;
 
                 [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constantBreakList, breakFrames);
@@ -625,11 +639,11 @@ end
 function [xpoints, ypoints] = addBreakFrames(xpoints, ypoints, breakList, breakFrames)
     breakList = sort(breakList, 'descend');
     for i = breakList
-        xRepeat = repelem(xpoints(i-1), breakFrames);
-        yRepeat = repelem(ypoints(i-1), breakFrames);
+        xRepeat = repelem(xpoints(i-1), breakFrames+1);
+        yRepeat = repelem(ypoints(i-1), breakFrames+1);
         % repeating a couple frames to avoid drawing any frames connecting one ellipse to another
-        xpoints = [xpoints(1:i-1) xRepeat xpoints(i+1:end)];
-        ypoints = [ypoints(1:i-1) yRepeat ypoints(i+1:end)];
+        xpoints = [xpoints(1:i-1) xRepeat xpoints(i+2:end)];
+        ypoints = [ypoints(1:i-1) yRepeat ypoints(i+2:end)];
     end
 end
 
