@@ -4,44 +4,35 @@ function [] = generateParameters()
     parametersKeyList = calculationsMap('parametersKeyList');
     translatedParameters = calculationsMap('translatedParameters');
 
-    constNat = [];
-    constUnnat = [];
-    AlternateNat = [];
-    AlternateUnnat = [];
+    constNat = zeros(150, 368);
+    constUnnat = zeros(150, 368);
+    alternateNat = zeros(150, 368);
+    alternateUnnat = zeros(150, 368);
 
-    constNatBreaks = [];
-    constUnnatBreaks = [];
-    AlternateNatBreaks = [];
-    AlternateUnnatBreaks = [];
+    constNatBreaks = zeros(75, 8);
+    constUnnatBreaks = zeros(75, 8);
+    alternateNatBreaks = zeros(75, 8);
+    alternateUnnatBreaks = zeros(75, 8);
 
     for p = 1:size(parametersKeyList, 1)
         constantParams = translatedParameters(parametersKeyList(p,1),:);
         alternatingParams = translatedParameters(parametersKeyList(p,2),:);
 
         scale = calculationsMap('scale');
-        
-
-        % if strcmp(screenside, 'left')
-        %     xCenter = screenInfoMap('leftxCenter');
-        %     xsideoffset = 0;
-        % else
-        %     xCenter = screenInfoMap('rightxCenter');
-        %     xsideoffset = screenInfoMap('stimXpixels')*2;
-        % end
 
         gridCoordinates = generateGrid(calculationsMap('xGridSpaces'), calculationsMap('yGridSpaces'));
         twoscalegridCoordinates = generateGrid(2,4);
-        gridPositions = [1:(calculationsMap('xGridSpaces')*calculationsMap('yGridSpaces'))];
-        gridPositions = gridPositions(randperm(length(gridPositions)));
-
-        twoscalegridPositions = [1:(2*4)];
-        twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
 
 
         %CONST NAT
         generationInvalid = true;
         %while there isn't a valid generated set of points
         while generationInvalid
+            gridPositions = [1:(calculationsMap('xGridSpaces')*calculationsMap('yGridSpaces'))];
+            gridPositions = gridPositions(randperm(length(gridPositions)));
+
+            twoscalegridPositions = [1:(2*4)];
+            twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
             %generate new set of points
             [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
             constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));            
@@ -87,13 +78,20 @@ function [] = generateParameters()
             
         end
         % plot(xpoints, ypoints);
-        constNat = [constNat;xpoints;ypoints];
-        constNatBreaks = [constNatBreaks;breakList];
+        constNat(p*2, 1:numel(xpoints)) = xpoints;
+        constNat(p*2+1, 1:numel(ypoints)) = ypoints;
+        % constNatBreaks = [constNatBreaks;breakList];
+        constNatBreaks(p, 1:numel(breakList)) = breakList;
         % break;
 
         %%%%%%%%%%%%%%%%%%CONST UNNAT
         generationInvalid = true;
         while generationInvalid
+            gridPositions = [1:(calculationsMap('xGridSpaces')*calculationsMap('yGridSpaces'))];
+            gridPositions = gridPositions(randperm(length(gridPositions)));
+
+            twoscalegridPositions = [1:(2*4)];
+            twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
             %generate new set of points
             [xpoints ypoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
             constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
@@ -139,8 +137,9 @@ function [] = generateParameters()
             
         end
         % plot(xpoints, ypoints);
-        constUnnat = [constUnnat;xpoints;ypoints];
-        constUnnatBreaks = [constUnnatBreaks;breakList];
+        constUnnat(p*2, 1:numel(xpoints)) = xpoints;
+        constUnnat(p*2+1, 1:numel(ypoints)) = ypoints;
+        constUnnatBreaks(p, 1:numel(breakList)) = breakList;
         % break;
 
 
@@ -148,8 +147,13 @@ function [] = generateParameters()
         %%%%%%%%%%%%%%%%%%ALTERNATE UNNAT
         generationInvalid = true;
         while generationInvalid
+            gridPositions = [1:(calculationsMap('xGridSpaces')*calculationsMap('yGridSpaces'))];
+            gridPositions = gridPositions(randperm(length(gridPositions)));
+
+            twoscalegridPositions = [1:(2*4)];
+            twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
             [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
-            constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+            alternatingParams(1), alternatingParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
             
             generationInvalid = false;
             previousBreak = 1;
@@ -191,9 +195,10 @@ function [] = generateParameters()
             end
             
         end
-        % plot(xpoints, ypoints);
-        AlternateNat = [AlternateNat;xpoints;ypoints];
-        AlternateNatBreaks = [AlternateNatBreaks;breakList];
+
+        alternateNat(p*2, 1:numel(xpoints)) = xpoints(1,:);
+        alternateNat(p*2+1, 1:numel(ypoints)) = ypoints(1,:);
+        alternateNatBreaks(p, 1:numel(breakList)) = breakList;
         % break;
 
 
@@ -201,12 +206,13 @@ function [] = generateParameters()
         %%%%%%%%%%%%%%%%%%ALTERNATE UNNAT
         generationInvalid = true;
         while generationInvalid
-            % generate const, right, nat
-            % [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculationsMap, screenInfoMap, ...
-            % constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
-            % generate const, right, unnat
+            gridPositions = [1:(calculationsMap('xGridSpaces')*calculationsMap('yGridSpaces'))];
+            gridPositions = gridPositions(randperm(length(gridPositions)));
+
+            twoscalegridPositions = [1:(2*4)];
+            twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
             [xpoints ypoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
-            constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
+            alternatingParams(1), alternatingParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, calculationsMap('framesPerLoop'));
             
             
             generationInvalid = false;
@@ -249,23 +255,22 @@ function [] = generateParameters()
             end
             
         end
-        % plot(xpoints, ypoints);
-        AlternateUnnat = [AlternateUnnat;xpoints;ypoints];
-        AlternateUnnatBreaks = [AlternateUnnatBreaks;breakList];
+        alternateUnnat(p*2, 1:numel(xpoints)) = xpoints;
+        alternateUnnat(p*2+1, 1:numel(ypoints)) = ypoints;
+        alternateUnnatBreaks(p, 1:numel(breakList)) = breakList;
         % break;
         
     end
 
-    %TODO: REMEMBER TO ADD THE XSIDEOFFSET TO XPOINTS WHEN PLOTTING!!!!!!!
     csvwrite('ConstNat.csv',constNat);
     csvwrite('ConstUnnat.csv',constUnnat);
-    csvwrite('AlternateNat.csv',AlternateNat);
-    csvwrite('AlternateUnnat.csv',AlternateUnnat);
+    csvwrite('AlternateNat.csv',alternateNat);
+    csvwrite('AlternateUnnat.csv',alternateUnnat);
 
     csvwrite('ConstNatBreaks.csv',constNatBreaks);
     csvwrite('ConstUnnatBreaks.csv',constUnnatBreaks);
-    csvwrite('AlternateNatBreaks.csv',AlternateNatBreaks);
-    csvwrite('AlternateUnnatBreaks.csv',AlternateUnnatBreaks);
+    csvwrite('AlternateNatBreaks.csv',alternateNatBreaks);
+    csvwrite('AlternateUnnatBreaks.csv',alternateUnnatBreaks);
     
 
     sca;
@@ -463,7 +468,6 @@ end
 
 function [parameters] = readParameters()
   parameters = csvread('TelicInfantParameters.csv',1,0);
-  % disp(parameters(1,:))
 end
 
 function [imageTexture] = generateImgTexture(imagePath, screenYpixels, window)
