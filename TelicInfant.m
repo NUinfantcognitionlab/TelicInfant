@@ -27,7 +27,7 @@ function [] = TelicInfant()
     % alternatingSide = 'right';
     % breakType = 'random';
 
-    for t = 1:1
+    for t = 1:4
         attentionScreen(screenInfoMap, colorsMap);
         if strcmp(displayType, 'object')
             runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType, alternateParametersList, alternateBreakList, constParametersList, constBreakList);
@@ -554,7 +554,7 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
     parametersKeyList = calculationsMap('parametersKeyList');
     translatedParameters = calculationsMap('translatedParameters');
     leftAlternating = strcmp(alternatingSide, 'left');
-    finalTime = datenum(clock + [0, 0, 0, 0, 0, 25]);
+    finalTime = datenum(clock + [0, 0, 0, 0, 0, 60]);
     blankscreenTime = calculationsMap('blankscreenTime');
     window = screenInfoMap('window');
     leftxCenter = screenInfoMap('leftxCenter');
@@ -952,7 +952,7 @@ end
 
 function [calculationsMap, colorsMap, screenInfoMap] = runSetup()
     %The following lines set up the Psychtoolbox environment.
-    Screen('Preference', 'SkipSyncTests', 1);
+    Screen('Preference', 'SkipSyncTests', 0);
     %The previous line sets the experiment to run screen sychronization tests,
     %to make timing accurate. If the experiment won't run, change the 0 to a 1
     %to skip those tests, at the risk of innacurate timing. (Make sure you try
