@@ -13,6 +13,15 @@ function [] = TelicInfant()
     % screenInfoMap : window, vbl, ifi, baseRect, screenXpixels, screenYpixels, stimXpixels, xCenter, yCenter, leftxCenter, rightxCenter, screenNumber, imageTexture
     [calculationsMap, colorsMap, screenInfoMap] = runSetup();
     timePerAnimation = 4.5;
+    if strcmp(breakType, 'equal')
+        fileTypeString = 'Nat';
+    else
+        fileTypeString = 'Unnat';
+    end
+    alternateParametersList = csvread(['Alternate', fileTypeString, '.csv'], 0, 0);
+    alternateBreakList = csvread(['Alternate', fileTypeString, 'Breaks.csv'], 0, 0);
+    constParametersList = csvread(['Const', fileTypeString, '.csv'], 0, 0);
+    constBreakList = csvread(['Const', fileTypeString, 'Breaks.csv'], 0, 0);
 
     
 
@@ -20,51 +29,12 @@ function [] = TelicInfant()
     % alternatingSide = 'right';
     % breakType = 'random';
 
-    for t = 1:4
+    for t = 1:1
         attentionScreen(screenInfoMap, colorsMap);
         if strcmp(displayType, 'object')
-            runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
+            runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType, alternateParametersList, alternateBreakList, constParametersList, constBreakList);
         else
-            runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType);
-        end
-        if strcmp(alternatingSide, 'left')
-            alternatingSide = 'right';
-        else
-            alternatingSide = 'left';
-        end
-    end
-    endingScreen(screenInfoMap, colorsMap);
-
-    sca
-    Priority(0);
-end
-
-function [] = TelicInfantOld()
-    % Set up initial conditions via the command line
-    condition = input('Condition e (event) or o (object): ', 's');
-    displayType = displayTypeInputcheck(condition);
-    condition = input('Condition r (right alternating) or l (left alternating): ', 's');
-    alternatingSide = alternatingInputcheck(condition);
-    condition = input('Condition nat (natural) or unnat (unnatural): ', 's');
-    breakType = breakTypeInputcheck(condition);
-
-    %runs a bunch of Psychtoolbox setup and variable calculation, and returns some hashmaps storing that information for later retrieval
-    % calculationsMap : framesPerObjectLoop, framesPerLoop, minSpace, breakTime, displayTime, blankscreenTime, scale, xGridSpaces, yGridSpaces, translatedParameters, parametersKeyList
-    % colorsMap : screenBlack, screenWhite, screenGrey, rgbgrey
-    % screenInfoMap : window, vbl, ifi, baseRect, screenXpixels, screenYpixels, stimXpixels, xCenter, yCenter, leftxCenter, rightxCenter, screenNumber, imageTexture
-    [calculationsMap, colorsMap, screenInfoMap] = runSetup();
-    timePerAnimation = 4.5;
-
-    % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
-    % alternatingSide = 'right';
-    % breakType = 'random';
-
-    for t = 1:4
-        attentionScreen(screenInfoMap, colorsMap);
-        if strcmp(displayType, 'object')
-            runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType);
-        else
-            runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType);
+            runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType, alternateParametersList, alternateBreakList, constParametersList, constBreakList);
         end
         if strcmp(alternatingSide, 'left')
             alternatingSide = 'right';
@@ -83,17 +53,15 @@ end
 % FUNCTIONS FOR OBJECTS
 
 % Manages running the Object condition for an amount of time. Uses showObjectStimuli to display stims
-function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType)
+function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType,  alternateParametersList, alternateBreakList, constParametersList, constBreakList)
     parametersKeyList = calculationsMap('parametersKeyList');
     p = 1;
     translatedParameters = calculationsMap('translatedParameters');
     % this boolean is calculated up here to make sure the conditional during stim presentation is as fast as possible
     leftAlternating = strcmp(alternatingSide, 'left');
-    finalTime = datenum(clock + [0, 0, 0, 0, 0, 20]);
-    parametersList = csvread('AlternateNat.csv',0,0);
-    parametersBreaksList = csvread('AlternateNatBreaks.csv',0,0);
-    if strcmp(breakType, 'equal')
+    finalTime = datenum(clock + [0, 0, 0, 0, 0, 10]);
     
+    if strcmp(breakType, 'equal')
         generationFunction = @drawObjectsFromPoints;
     else
         generationFunction = @drawObjectsFromPoints;
@@ -101,21 +69,19 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
 
     while datenum(clock) < finalTime
         % read parameters from the list based on the current trial number
-        % col 2 is alternating, and 1 is constant. Here, xparam is constant and yparam is alternating. Vice-versa after the else
-        constantParams = [parametersList(p,:); parametersList(p+1,:)];
-        disp(constantParams(1,1:5))
-        disp(constantParams(2,1:5))
-        alternatingParams = [parametersList(p,:); parametersList(p+1,:)];
-        constantBreakList = parametersBreaksList(p,:)
-        alternatingBreakList = parametersBreaksList(p,:)
+        % constantParams contains both x and ypoints
+        constantParams = [constParametersList(p,:); constParametersList(p+1,:)];
+        alternatingParams = [alternateParametersList(p,:); alternateParametersList(p+1,:)];
+        constantBreakList = constBreakList(((p+1)/2),:)
+        alternatingBreakList = alternateBreakList(((p+1)/2),:)
         if leftAlternating
             % because of the projector mirroring, putting the alternation on the right of the screen will be on the left of the projector screen
-            showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, constantParams(1,:), constantParams(2,:), constantBreakList, alternatingParams(1,:), alternatingParams(2,:), alternatingBreakList);
+            showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, breakType, constantParams(1,:), constantParams(2,:), constantBreakList, alternatingParams(1,:), alternatingParams(2,:), alternatingBreakList);
         else
-            showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, alternatingParams(1,:), alternatingParams(2,:), alternatingBreakList, constantParams(1,:), constantParams(2,:), constantBreakList);
+            showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, breakType, alternatingParams(1,:), alternatingParams(2,:), alternatingBreakList, constantParams(1,:), constantParams(2,:), constantBreakList);
         end
         p = p+2;
-        if p > numel(parametersList)/2
+        if p > numel(constParametersList)/2
             p = 0;
         end
     end
@@ -123,14 +89,17 @@ end
 
 % takes parameters for two sides of stimuli and draws both to the screen for the amount of time specified for the display
 % Uses generateObjectSet to generate the points for the object and draw them to the screen
-function [] = showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, leftxpoints, leftypoints, leftBreaks, rightxpoints, rightypoints, rightBreaks)
+function [] = showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, breakType, leftxpoints, leftypoints, leftBreaks, rightxpoints, rightypoints, rightBreaks)
     window = screenInfoMap('window');
     black = colorsMap('screenBlack');
     % plot(leftxpoints, leftypoints)
+
+    disp(leftxpoints(:, 1:5))
+    disp(rightxpoints(:, 1:5))
     
-    drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, ...
+    drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, breakType, ...
         'left', leftxpoints, leftypoints, leftBreaks);
-    drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, ...
+    drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, breakType, ...
         'right', rightxpoints, rightypoints, rightBreaks);
     screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + calculationsMap('blankscreenTime'));
     drawBlankScreen(screenInfoMap, colorsMap);
@@ -138,7 +107,7 @@ function [] = showObjectStimuli(calculationsMap, screenInfoMap, colorsMap, leftx
 end
 
 
-function [] = drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, ...
+function [] = drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, breakType, ...
   screenside, xpoints, ypoints, breakList)
     scale = calculationsMap('scale');
     framesPerLoop = calculationsMap('framesPerObjectLoop');
@@ -150,32 +119,25 @@ function [] = drawObjectsFromPoints(calculationsMap, screenInfoMap, colorsMap, .
     yCenter = screenInfoMap('yCenter');
     if strcmp(screenside, 'left')
         xCenter = screenInfoMap('leftxCenter');
-        % xsideoffset = 0;
     else
         xCenter = screenInfoMap('rightxCenter');
         xpoints = xpoints + screenInfoMap('stimXpixels')*2;
     end
 
     totalpoints = numel(xpoints);
-    plot(xpoints, ypoints)
     bgRect = CenterRectOnPointd(screenInfoMap('baseRect'), xCenter, yCenter);
     Screen('FillRect', window, colorsMap('rgbgrey'), bgRect);
     savepoint = 1;
     for p = 1:totalpoints - 2
         if ~any(p == breakList) && ~any(p+1 == breakList)
-            p
-            disp(xpoints(p))
-            disp(ypoints(p))
             Screen('DrawLine', window, black, xpoints(p), ypoints(p), ...
                 xpoints(p+1), ypoints(p+1), 5);
-        else
+        elseif strcmp(breakType, 'equal')
             Screen('DrawLine', window, black, xpoints(p), ypoints(p), ...
                 xpoints(savepoint), ypoints(savepoint), 5);
             savepoint = p+1;
         end
     end
-    Screen('DrawLine', window, black, xpoints(totalpoints-1), ypoints(totalpoints-1), ...
-                xpoints(savepoint), ypoints(savepoint), 5);
 end
 
 % Draws sets of object stimuli to the screen, but DOESN'T flip the screen to make them visible.
@@ -492,6 +454,86 @@ end
 %%%%%%%%%
 % FUNCTIONS FOR EVENTS
 
+function [] = runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType,  alternateParametersList, alternateBreakList, constParametersList, constBreakList)
+    % A bunch of info retrieval up front to avoid dealing with maps during the stimulus presentation
+    parametersKeyList = calculationsMap('parametersKeyList');
+    translatedParameters = calculationsMap('translatedParameters');
+    leftAlternating = strcmp(alternatingSide, 'left');
+    %TODO: change the time to 60s
+    finalTime = datenum(clock + [0, 0, 0, 0, 0, 25]);
+    blankscreenTime = calculationsMap('blankscreenTime');
+    window = screenInfoMap('window');
+    leftxCenter = screenInfoMap('leftxCenter');
+    rightxCenter = screenInfoMap('rightxCenter');
+    yCenter = screenInfoMap('yCenter');
+    scale = calculationsMap('scale');
+    ifi = screenInfoMap('ifi');
+    minSpace = calculationsMap('minSpace');
+    breakFrames = round(calculationsMap('breakTime') / ifi);
+    leftAlternating = strcmp(alternatingSide, 'left');
+
+    % set up parameter cycle
+    constantParams = [constParametersList(1,:); constParametersList(2,:)];
+    alternatingParams = [alternateParametersList(1,:); alternateParametersList(2,:)];
+    constantBreakList = constBreakList(1,:);
+    alternatingBreakList = alternateBreakList(1,:);
+    alternating_xpoints = alternatingParams(1,:);
+    alternating_ypoints = alternatingParams(2,:);
+    constant_xpoints = constantParams(1,:);
+    constant_ypoints = constantParams(2,:);
+    p=3;
+
+    [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constantBreakList, breakFrames);
+    [alternating_xpoints, alternating_ypoints] = addBreakFrames(alternating_xpoints, alternating_ypoints, alternatingBreakList, breakFrames);
+    % frame indexing variable f, parameter indexing variable p
+    f=1;
+    currentAnimationLength = max([numel(constant_xpoints), numel(alternating_ypoints)]);
+    while datenum(clock) < finalTime
+        % if the current f is through all the frames of the current animation
+        if f >= currentAnimationLength
+            % if the clock+1 second is before the final time (there's more than one second left to animate)
+            if datenum(clock + [0, 0, 0, 0, 0, 1]) < finalTime
+                % draw the blank screen and flip (asap flip)
+                drawBlankScreen(screenInfoMap, colorsMap);
+                screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + 0.5 * ifi);
+                %reset animation parameters
+                constantParams = [constParametersList(p,:); constParametersList(p+1,:)];
+                alternatingParams = [alternateParametersList(p,:); alternateParametersList(p+1,:)];
+                constantBreakList = constBreakList(((p+1)/2),:);
+                alternatingBreakList = alternateBreakList(((p+1)/2),:);
+                alternating_xpoints = alternatingParams(1,:);
+                alternating_ypoints = alternatingParams(2,:);
+                constant_xpoints = constantParams(1,:);
+                constant_ypoints = constantParams(2,:);
+                p=p+2;
+
+                [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constantBreakList, breakFrames);
+                [alternating_xpoints, alternating_ypoints] = addBreakFrames(alternating_xpoints, alternating_ypoints, alternatingBreakList, breakFrames);
+                % and reset f and the currentAnimationLength
+                f=1;
+                currentAnimationLength = max([numel(constant_xpoints), numel(alternating_ypoints)]);
+                % draw the first point and flip, vbl+blankscreentime
+                drawEventFrame(calculationsMap, screenInfoMap, colorsMap, constant_xpoints, constant_ypoints, alternating_xpoints, alternating_ypoints, f)
+                screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + blankscreenTime);
+                % if the time is too late, do nothing;no flip or anything so the stars stay on screen
+                % this way, it lasts the right amount of time without going over
+            end
+        % otherwisewise, draw the frame for the corresponding f
+        else
+            if(leftAlternating)
+                drawEventFrame(calculationsMap, screenInfoMap, colorsMap, constant_xpoints, constant_ypoints, alternating_xpoints, alternating_ypoints, f)
+                % then flip, min time
+                screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + 0.5 * ifi);
+            else
+                drawEventFrame(calculationsMap, screenInfoMap, colorsMap, alternating_xpoints, alternating_ypoints, constant_xpoints, constant_ypoints, f)
+                % then flip, min time
+                screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + 0.5 * ifi);
+            end
+        end
+        f = f+1;
+    end
+end
+
 % manages running the events condition for an amount of time.
 function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerAnimation, alternatingSide, breakType)
     % A bunch of info retrieval up front to avoid dealing with maps during the stimulus presentation
@@ -509,19 +551,6 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
     minSpace = calculationsMap('minSpace');
     breakFrames = round(calculationsMap('breakTime') / ifi);
     leftAlternating = strcmp(alternatingSide, 'left');
-    xGridSpaces = calculationsMap('xGridSpaces');
-    yGridSpaces = calculationsMap('yGridSpaces');
-
-    %create a set of potential poitions on the grid, from 1 to however many spots there are
-    gridPositions = [1:(xGridSpaces*yGridSpaces)];
-    gridPositions = gridPositions(randperm(length(gridPositions)));
-
-    twoscalegridPositions = [1:(2*4)];
-    twoscalegridPositions = twoscalegridPositions(randperm(length(twoscalegridPositions)));
-
-
-    gridCoordinates = generateEventsGrid(xGridSpaces, yGridSpaces);
-    twoscalegridCoordinates = generateEventsGrid(2,4);
 
     if strcmp(breakType, 'equal')
         generationFunction = @generateNaturalCoordinateSet;
@@ -537,9 +566,9 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
     % generate the ellipse sets, and set the current animation Length (the number of frames to run to for this set) to whichever is longer)
     a_framesPerLoop = round((timePerAnimation/constantParams(1)) / ifi) + 1 - breakFrames;
     b_framesPerLoop = round((timePerAnimation/alternatingParams(1)) / ifi) + 1 - breakFrames;
-    [constant_xpoints constant_ypoints constant_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
+    [constant_xpoints constant_ypoints constantBreakList] = generationFunction(calculationsMap, screenInfoMap, ...
     constantParams(1), constantParams(2), 0, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, a_framesPerLoop);
-    [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constant_breakList, breakFrames);
+    [constant_xpoints, constant_ypoints] = addBreakFrames(constant_xpoints, constant_ypoints, constantBreakList, breakFrames);
     [alternating_xpoints alternating_ypoints alternating_breakList] = generationFunction(calculationsMap, screenInfoMap, ...
     alternatingParams(1), alternatingParams(2), screenInfoMap('stimXpixels')*2, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, b_framesPerLoop);
     [alternating_xpoints, alternating_ypoints] = addBreakFrames(alternating_xpoints, alternating_ypoints, alternating_breakList, breakFrames);
@@ -596,7 +625,6 @@ end
 function [xpoints, ypoints] = addBreakFrames(xpoints, ypoints, breakList, breakFrames)
     breakList = sort(breakList, 'descend');
     for i = breakList
-        % the "4" being shuffled around here is to remove a "skipping" effect resulting from trying to 
         xRepeat = repelem(xpoints(i-1), breakFrames);
         yRepeat = repelem(ypoints(i-1), breakFrames);
         % repeating a couple frames to avoid drawing any frames connecting one ellipse to another
@@ -614,7 +642,7 @@ function [] = drawEventFrame(calculationsMap, screenInfoMap, colorsMap, a_xpoint
     grey = colorsMap('rgbgrey');
     baseRect = screenInfoMap('baseRect');
     yCenter = screenInfoMap('yCenter');
-
+    b_xpoints = b_xpoints + screenInfoMap('stimXpixels')*2;
     % draw gray background
     bgRect = CenterRectOnPointd(baseRect, screenInfoMap('leftxCenter'), yCenter);
     Screen('FillRect', window, grey, bgRect);
