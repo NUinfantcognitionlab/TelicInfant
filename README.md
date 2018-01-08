@@ -9,7 +9,7 @@ To run the experiment, download the files from this repository. Open the Matlab 
 
 If you're unfamiliar with the command windows, you can use the `ls` command to see the directories and files in your current location, and the `cd directory_name` command to move into a directory, or `cd ..` to move from your current directory to the parent of that directory. Imagine each `cd` command is opening another window in your Finder/Explorer to see the next folder.
 
-Once you've navigated to the directory containing the files, run the `TelicInfant` command to run the program. A brief introduction screen will display before the experiment starts.
+Once you've navigated to the directory containing the files, run the `generateParameters` command to generate csv files containing the parameters, and the `TelicInfant` command to run the program. A brief introduction screen will display before the experiment starts.
 
 ## The Experiment
 
