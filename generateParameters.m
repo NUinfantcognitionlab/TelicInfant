@@ -262,10 +262,10 @@ function [] = generateParameters()
         
     end
 
-    csvwrite('ConstNat.csv',constNat);
-    csvwrite('ConstUnnat.csv',constUnnat);
-    csvwrite('AlternateNat.csv',alternateNat);
-    csvwrite('AlternateUnnat.csv',alternateUnnat);
+    csvwrite('ConstNat.csv',constNat(2:size(constNat, 1),:));
+    csvwrite('ConstUnnat.csv',constUnnat(2:size(constUnnat, 1),:));
+    csvwrite('AlternateNat.csv',alternateNat(2:size(alternateNat, 1),:));
+    csvwrite('AlternateUnnat.csv',alternateUnnat(2:size(alternateUnnat, 1),:));
 
     csvwrite('ConstNatBreaks.csv',constNatBreaks);
     csvwrite('ConstUnnatBreaks.csv',constUnnatBreaks);

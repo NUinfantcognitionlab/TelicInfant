@@ -27,7 +27,7 @@ function [] = TelicInfant()
     % alternatingSide = 'right';
     % breakType = 'random';
 
-    for t = 1:1
+    for t = 1:4
         attentionScreen(screenInfoMap, colorsMap);
         if strcmp(displayType, 'object')
             runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType, alternateParametersList, alternateBreakList, constParametersList, constBreakList);
@@ -554,7 +554,7 @@ function [] = runEventsTrial(calculationsMap, screenInfoMap, colorsMap, timePerA
     parametersKeyList = calculationsMap('parametersKeyList');
     translatedParameters = calculationsMap('translatedParameters');
     leftAlternating = strcmp(alternatingSide, 'left');
-    finalTime = datenum(clock + [0, 0, 0, 0, 0, 25]);
+    finalTime = datenum(clock + [0, 0, 0, 0, 0, 60]);
     blankscreenTime = calculationsMap('blankscreenTime');
     window = screenInfoMap('window');
     leftxCenter = screenInfoMap('leftxCenter');
