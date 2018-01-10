@@ -848,10 +848,11 @@ function [] = attentionScreen(screenInfoMap, colorsMap)
     screenInfoMap('vbl') = Screen('Flip', window);
     ifi = screenInfoMap('ifi');
     waitframes = 1;
-
+    [x,y,buttons] = GetMouse;
+    
     % Loop the animation until a key is pressed
-    while ~KbCheck
-
+    while ~KbCheck && ~any(buttons)
+        [x,y,buttons] = GetMouse;
         % Scale the grid coordinates
         scaleFactor = abs(amplitude * sin(angFreq * time + startPhase));
 
@@ -886,7 +887,14 @@ function [] = endingScreen(screenInfoMap, colorsMap)
     screenXpixels = screenInfoMap('stimXpixels');
 
     screenInfoMap('vbl') = Screen('Flip', window);
-    KbWait();
+    % KbWait();
+
+    [x,y,buttons] = GetMouse;
+    
+    % Loop the animation until a key is pressed
+    while ~KbCheck && ~any(buttons)
+        [x,y,buttons] = GetMouse;
+    end
 end
 
 
