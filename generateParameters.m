@@ -589,6 +589,7 @@ function [calculationsMap, colorsMap, screenInfoMap] = runSetup()
     'rgbgrey'}, {black, white, grey, rgbgrey});
     screenInfoMap = containers.Map({'window', 'vbl', 'ifi', 'baseRect', ...
     'screenXpixels', 'screenYpixels', 'stimXpixels', 'xCenter', 'yCenter', 'leftxCenter', 'rightxCenter', 'screenNumber', 'imageTexture'}, {window, vbl, ifi, baseRect, screenXpixels, (screenYpixels/3)*3, stimXpixels, xCenter, yCenter, leftxCenter, rightxCenter, screenNumber, imageTexture});
+    sca;
 end
 
 function [xpoints, ypoints] = getEllipseSetPoints(numberOfLoops, framesPerLoop, ellipseScale)
