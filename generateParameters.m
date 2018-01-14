@@ -4,10 +4,10 @@ function [] = generateParameters()
     parametersKeyList = calculationsMap('parametersKeyList');
     translatedParameters = calculationsMap('translatedParameters');
 
-    constNat = zeros(150, 368);
-    constUnnat = zeros(150, 368);
-    alternateNat = zeros(150, 368);
-    alternateUnnat = zeros(150, 368);
+    constNat = zeros(150, 300);
+    constUnnat = zeros(150, 300);
+    alternateNat = zeros(150, 300);
+    alternateUnnat = zeros(150, 300);
 
     constNatBreaks = zeros(75, 8);
     constUnnatBreaks = zeros(75, 8);
@@ -286,6 +286,11 @@ function [xpoints ypoints breakList] = generateNaturalCoordinateSet(calculations
     xpoints = [];
     ypoints = [];
     breakList = [];
+    if numberOfLoops == 8
+        framesPerLoop = round(calculationsMap('framesPer8LoopAnimation')/numberOfLoops); 
+    else
+        framesPerLoop = round(calculationsMap('framesPer4LoopAnimation')/numberOfLoops);
+    end
     for i = 1:numberOfLoops
         [xEllipse, yEllipse] = plotEllipse(framesPerLoop, ellipseScale);
         [xEllipse, yEllipse] = rotateEllipse(xEllipse, yEllipse);
@@ -307,6 +312,12 @@ end
 
 function [processedxPoints processedyPoints breakList] = generateRandomCoordinateSet(calculationsMap, screenInfoMap, ...
   numberOfLoops, ellipseScale, xsideoffset, scale, gridCoordinates, gridPositions, twoscalegridCoordinates, twoscalegridPositions, framesPerLoop)
+    if numberOfLoops == 8
+        framesPerLoop = round(calculationsMap('framesPer8LoopAnimation')/numberOfLoops); 
+    else
+        framesPerLoop = round(calculationsMap('framesPer4LoopAnimation')/numberOfLoops);
+    end
+    
     [xpoints, ypoints] = getEllipseSetPoints(numberOfLoops, framesPerLoop, ellipseScale);
     % sort the breaks by ascending to deal with each chunk of points separately
     breakList = sort(generateBreakList('random', numel(xpoints), numberOfLoops, calculationsMap('minSpace')), 'ascend');
@@ -464,8 +475,6 @@ function [xpoints ypoints] = transposeEllipse(screenInfoMap, xpoints, ypoints, g
     ypoints = ypoints + (gridPosition(2)*screenInfoMap('screenYpixels'));
 end
 
-
-
 function [parameters] = readParameters()
   parameters = csvread('TelicInfantParameters.csv',1,0);
 end
@@ -540,10 +549,17 @@ function [calculationsMap, colorsMap, screenInfoMap] = runSetup()
     %all times in seconds
     LoopTime = .75;
     framesPerLoop = round(LoopTime / ifi) + 1;
-    framesPerObjectLoop = 80;
+
     minSpace = 10;
     %the minimum possible number of frames between steps
     breakTime = .25;
+
+    %will ideally be used to generate loopTime and framesPerLoop on the fly
+    totalTimePerAnimation = 4.5;
+    breakFrames = round(breakTime / ifi);
+    framesPer4LoopAnimation = round(totalTimePerAnimation / ifi) - breakFrames*4;
+    framesPer8LoopAnimation = round(totalTimePerAnimation / ifi) - breakFrames*8;
+
     %The number of seconds for each pause
     displayTime = .5;
     %number of seconds for which to display images
@@ -582,8 +598,8 @@ function [calculationsMap, colorsMap, screenInfoMap] = runSetup()
     % This way, I can just pass the container to a function and have all the myriad
     % info I need to write to the screen, without writing and re-writing all
     % the variables in order to the argument list.
-    calculationsMap = containers.Map({'framesPerObjectLoop', 'framesPerLoop', 'minSpace', 'breakTime', ...
-    'displayTime', 'blankscreenTime', 'scale', 'xGridSpaces', 'yGridSpaces', 'translatedParameters', 'parametersKeyList'}, {framesPerObjectLoop, framesPerLoop, minSpace, ...
+    calculationsMap = containers.Map({'totalTimePerAnimation','framesPer4LoopAnimation', 'framesPer8LoopAnimation', 'framesPerLoop', 'minSpace', 'breakTime', ...
+    'displayTime', 'blankscreenTime', 'scale', 'xGridSpaces', 'yGridSpaces', 'translatedParameters', 'parametersKeyList'}, {totalTimePerAnimation, framesPer4LoopAnimation, framesPer8LoopAnimation, framesPerLoop, minSpace, ...
     breakTime, displayTime, blankscreenTime, scale, xGridSpaces, yGridSpaces, translatedParameters, parametersKeyList});
     colorsMap = containers.Map({'screenBlack', 'screenWhite', 'screenGrey', ...
     'rgbgrey'}, {black, white, grey, rgbgrey});
