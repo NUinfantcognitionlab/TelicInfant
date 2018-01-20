@@ -1,5 +1,6 @@
 function [] = TelicInfant()
     % Set up initial conditions via the command line
+    disp('REMINDER: You should hold the left mouse button to go past the attention grabber, and the right mouse button to end the trial early.')
     condition = input('Condition e (event) or o (object): ', 's');
     displayType = displayTypeInputcheck(condition);
     condition = input('Condition r (right alternating) or l (left alternating): ', 's');
@@ -64,8 +65,8 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
     else
         generationFunction = @drawObjectsFromPoints;
     end
-
-    while datenum(clock) < finalTime
+    [x,y,buttons] = GetMouse;
+    while datenum(clock) < finalTime && ~buttons(3)
         % read parameters from the list based on the current trial number
         % constantParams contains both x and ypoints
         constantParams = [constParametersList(p,:); constParametersList(p+1,:)];
@@ -82,6 +83,7 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
         if p > numel(constParametersList)/2
             p = 0;
         end
+        [x,y,buttons] = GetMouse;
     end
 end
 
@@ -849,9 +851,8 @@ function [] = attentionScreen(screenInfoMap, colorsMap)
     ifi = screenInfoMap('ifi');
     waitframes = 1;
     [x,y,buttons] = GetMouse;
-    
     % Loop the animation until a key is pressed
-    while ~KbCheck && ~any(buttons)
+    while ~buttons(1)
         [x,y,buttons] = GetMouse;
         % Scale the grid coordinates
         scaleFactor = abs(amplitude * sin(angFreq * time + startPhase));
@@ -873,7 +874,6 @@ function [] = attentionScreen(screenInfoMap, colorsMap)
 
         % Increment the time
         time = time + ifi;
-
     end
 
 end
@@ -960,7 +960,7 @@ end
 
 function [calculationsMap, colorsMap, screenInfoMap] = runSetup()
     %The following lines set up the Psychtoolbox environment.
-    Screen('Preference', 'SkipSyncTests', 0);
+    Screen('Preference', 'SkipSyncTests', 1);
     %The previous line sets the experiment to run screen sychronization tests,
     %to make timing accurate. If the experiment won't run, change the 0 to a 1
     %to skip those tests, at the risk of innacurate timing. (Make sure you try
