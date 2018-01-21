@@ -1,44 +1,83 @@
 function [] = TelicInfant()
     % Set up initial conditions via the command line
     disp('REMINDER: You should hold the left mouse button to go past the attention grabber, and the right mouse button to end the trial early.')
-    condition = input('Condition e (event) or o (object): ', 's');
-    displayType = displayTypeInputcheck(condition);
+    % condition = input('Condition e (event) or o (object): ', 's');
+    % displayType = displayTypeInputcheck(condition);
+    condition = input('Condition a, b, c, or d: ', 's');
+    trialOrder = conditionInputcheck(condition);
     condition = input('Condition r (right alternating) or l (left alternating): ', 's');
     alternatingSide = alternatingInputcheck(condition);
-    condition = input('Condition nat (natural) or unnat (unnatural): ', 's');
-    breakType = breakTypeInputcheck(condition);
+    % condition = input('Condition nat (natural) or unnat (unnatural): ', 's');
+    % breakType = breakTypeInputcheck(condition);
 
     %runs a bunch of Psychtoolbox setup and variable calculation, and returns some hashmaps storing that information for later retrieval
     % calculationsMap : framesPerObjectLoop, framesPerLoop, minSpace, breakTime, displayTime, blankscreenTime, scale, xGridSpaces, yGridSpaces, translatedParameters, parametersKeyList
     % colorsMap : screenBlack, screenWhite, screenGrey, rgbgrey
     % screenInfoMap : window, vbl, ifi, baseRect, screenXpixels, screenYpixels, stimXpixels, xCenter, yCenter, leftxCenter, rightxCenter, screenNumber, imageTexture
     [calculationsMap, colorsMap, screenInfoMap] = runSetup();
-    timePerAnimation = 4.5;
-    if strcmp(breakType, 'equal')
-        fileTypeString = 'Nat';
-    else
-        fileTypeString = 'Unnat';
-    end
-    alternateParametersList = csvread(['Alternate', fileTypeString, '.csv'], 0, 0);
-    alternateBreakList = csvread(['Alternate', fileTypeString, 'Breaks.csv'], 0, 0);
-    constParametersList = csvread(['Const', fileTypeString, '.csv'], 0, 0);
-    constBreakList = csvread(['Const', fileTypeString, 'Breaks.csv'], 0, 0);    
+    % timePerAnimation = 4.5;
+    % if strcmp(breakType, 'equal')
+    %     fileTypeString = 'Nat';
+    % else
+    %     fileTypeString = 'Unnat';
+    % end
+    alternateNatParametersList = csvread(['AlternateNat.csv'], 0, 0);
+    alternateNatBreakList = csvread(['AlternateNatBreaks.csv'], 0, 0);
+    constNatParametersList = csvread(['ConstNat.csv'], 0, 0);
+    constNatBreakList = csvread(['ConstNatBreaks.csv'], 0, 0);   
+    alternateUnnatParametersList = csvread(['AlternateUnnat.csv'], 0, 0);
+    alternateUnnatBreakList = csvread(['AlternateUnnatBreaks.csv'], 0, 0);
+    constUnnatParametersList = csvread(['ConstUnnat.csv'], 0, 0);
+    constUnnatBreakList = csvread(['ConstUnnatBreaks.csv'], 0, 0); 
 
     % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
     % alternatingSide = 'right';
     % breakType = 'random';
+    if strcmp(trialOrder, 'a')
+        trialMatrix={   
+                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %a
+                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %b
+                        @runEventsFromPoints, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %c
+                        @runEventsFromPoints, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %d
+                    };
+    elseif strcmp(trialOrder, 'b')
+        trialMatrix={   
+                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %b
+                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %a
+                        @runEventsFromPoints, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %d
+                        @runEventsFromPoints, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %c
+                    };
+    elseif strcmp(trialOrder, 'c')
+        trialMatrix={   
+                        @runEventsFromPoints, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %c
+                        @runEventsFromPoints, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %d
+                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %a
+                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %b
+                    };
+    elseif strcmp(trialOrder, 'd')
+        trialMatrix={   
+                        @runEventsFromPoints, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %d
+                        @runEventsFromPoints, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %c
+                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %b
+                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %a
+                    };
+    end
 
-    for t = 1:4
-        attentionScreen(screenInfoMap, colorsMap);
-        if strcmp(displayType, 'object')
-            runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType, alternateParametersList, alternateBreakList, constParametersList, constBreakList);
-        else
-            runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType, alternateParametersList, alternateBreakList, constParametersList, constBreakList);
-        end
-        if strcmp(alternatingSide, 'left')
-            alternatingSide = 'right';
-        else
-            alternatingSide = 'left';
+    for s = 1:size(trialMatrix, 1)
+        for t = 1:4
+            attentionScreen(screenInfoMap, colorsMap);
+            % if strcmp(displayType, 'object')
+            %     runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType, alternateParametersList, alternateBreakList, constParametersList, constBreakList);
+            % else
+            %     runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alternatingSide, breakType, alternateParametersList, alternateBreakList, constParametersList, constBreakList);
+            % end
+            trialFunction = trialMatrix{s, 1};
+            trialFunction(calculationsMap, screenInfoMap, colorsMap, alternatingSide, trialMatrix{s, 2}, trialMatrix{s, 3}, trialMatrix{s, 4}, trialMatrix{s, 5}, trialMatrix{s, 6});
+            if strcmp(alternatingSide, 'left')
+                alternatingSide = 'right';
+            else
+                alternatingSide = 'left';
+            end
         end
     end
     endingScreen(screenInfoMap, colorsMap);
@@ -497,11 +536,12 @@ function [] = runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alt
     % frame indexing variable f, parameter indexing variable p
     f=1;
     currentAnimationLength = max([numel(constant_xpoints), numel(alternating_ypoints)]);
-    while datenum(clock) < finalTime
+    [x,y,buttons] = GetMouse;
+    while datenum(clock) < finalTime && ~buttons(3)
         % if the current f is through all the frames of the current animation
         if f >= currentAnimationLength
             % if the clock+1 second is before the final time (there's more than one second left to animate)
-            if datenum(clock + [0, 0, 0, 0, 0, 1]) < finalTime
+            if datenum(clock + [0, 0, 0, 0, 0, 1]) < finalTime && ~buttons(3)
                 % draw the blank screen and flip (asap flip)
                 drawBlankScreen(screenInfoMap, colorsMap);
                 screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + 0.5 * ifi);
@@ -547,6 +587,7 @@ function [] = runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alt
             end
         end
         f = f+1;
+        [x,y,buttons] = GetMouse;
     end
 end
 
@@ -931,6 +972,13 @@ function [condition] = displayTypeInputcheck(condition)
         condition = 'event';
     else
         condition = 'object';
+    end
+end
+
+function [condition] = conditionInputcheck(condition)
+    condition = lower(condition);
+    while ~any(condition == ['a','b', 'c', 'd'])
+        condition = input('Condition must be a, b, c, or d: ', 's');
     end
 end
 
