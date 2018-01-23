@@ -1,6 +1,5 @@
 function [] = TelicInfant()
     % Set up initial conditions via the command line
-    disp('REMINDER: You should hold the left mouse button to go past the attention grabber, and the right mouse button to end the trial early.')
     condition = input('Condition 1, 2, 3, 4: ', 's');
     trialOrder = conditionInputcheck(condition);
     condition = input('Condition r (right alternating) or l (left alternating): ', 's');
@@ -85,7 +84,7 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
         generationFunction = @drawObjectsFromPoints;
     end
     [x,y,buttons] = GetMouse;
-    while datenum(clock) < finalTime && ~buttons(3)
+    while datenum(clock) < finalTime && ~any(buttons)
         % read parameters from the list based on the current trial number
         % constantParams contains both x and ypoints
         constantParams = [constParametersList(p,:); constParametersList(p+1,:)];
@@ -102,6 +101,9 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
         if p > numel(constParametersList)/2
             p = 0;
         end
+        [x,y,buttons] = GetMouse;
+    end
+    while any(buttons) % wait for release
         [x,y,buttons] = GetMouse;
     end
 end
@@ -517,11 +519,11 @@ function [] = runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alt
     f=1;
     currentAnimationLength = max([numel(constant_xpoints), numel(alternating_ypoints)]);
     [x,y,buttons] = GetMouse;
-    while datenum(clock) < finalTime && ~buttons(3)
+    while datenum(clock) < finalTime && ~any(buttons)
         % if the current f is through all the frames of the current animation
         if f >= currentAnimationLength
             % if the clock+1 second is before the final time (there's more than one second left to animate)
-            if datenum(clock + [0, 0, 0, 0, 0, 1]) < finalTime && ~buttons(3)
+            if datenum(clock + [0, 0, 0, 0, 0, 1]) < finalTime
                 % draw the blank screen and flip (asap flip)
                 drawBlankScreen(screenInfoMap, colorsMap);
                 screenInfoMap('vbl') = Screen('Flip', window, screenInfoMap('vbl') + 0.5 * ifi);
@@ -567,6 +569,9 @@ function [] = runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alt
             end
         end
         f = f+1;
+        [x,y,buttons] = GetMouse;
+    end
+    while any(buttons) % wait for release
         [x,y,buttons] = GetMouse;
     end
 end
@@ -873,7 +878,7 @@ function [] = attentionScreen(screenInfoMap, colorsMap)
     waitframes = 1;
     [x,y,buttons] = GetMouse;
     % Loop the animation until a key is pressed
-    while ~buttons(1)
+    while ~any(buttons)
         [x,y,buttons] = GetMouse;
         % Scale the grid coordinates
         scaleFactor = abs(amplitude * sin(angFreq * time + startPhase));
@@ -894,6 +899,33 @@ function [] = attentionScreen(screenInfoMap, colorsMap)
         % Increment the time
         time = time + ifi;
     end
+    while any(buttons) % wait for release
+        [x,y,buttons] = GetMouse;
+    end
+    while ~any(buttons) % wait for second click
+        [x,y,buttons] = GetMouse;
+        % Scale the grid coordinates
+        scaleFactor = abs(amplitude * sin(angFreq * time + startPhase));
+
+        % Scale the dot size. Here we limit the minimum dot size to one pixel
+        % by using the max function as PTB won't allow the dot size to scale to
+        % zero (sensibly, as you'd be drawing no dots at all)
+        thisDotSize = max(4, maxDotSize .* scaleFactor);
+
+        % Draw all of our dots to the screen in a single line of code adding
+        % the sine oscilation to the X coordinates of the dots
+        Screen('DrawDots', window, [xPosVector; yPosVector] .* scaleFactor,...
+            thisDotSize, dotColors, dotCenter, 2);
+
+        % Flip to the screen
+        screenInfoMap('vbl')  = Screen('Flip', window, screenInfoMap('vbl') + (waitframes - 0.5) * ifi);
+
+        % Increment the time
+        time = time + ifi;
+    end
+    while any(buttons) % wait for release
+        [x,y,buttons] = GetMouse;
+    end
 
 end
 
@@ -909,6 +941,9 @@ function [] = endingScreen(screenInfoMap, colorsMap)
 
     [x,y,buttons] = GetMouse;
     
+    while any(buttons) % wait for release
+        [x,y,buttons] = GetMouse;
+    end
     % Loop the animation until a key is pressed
     while ~KbCheck && ~any(buttons)
         [x,y,buttons] = GetMouse;
