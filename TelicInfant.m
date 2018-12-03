@@ -1,6 +1,6 @@
 function [] = TelicInfant()
     % Set up initial conditions via the command line
-    condition = input('Condition 1, 2, 3, 4: ', 's');
+    condition = input('Natural first (nat) or unnatural first (unnat): ', 's');
     trialOrder = conditionInputcheck(condition);
     condition = input('Condition r (right alternating) or l (left alternating): ', 's');
     alternatingSide = alternatingInputcheck(condition);
@@ -17,33 +17,19 @@ function [] = TelicInfant()
     constUnnatBreakList = csvread(['ConstUnnatBreaks.csv'], 0, 0); 
 
     % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
-    if strcmp(trialOrder, '1')
+    if strcmp(trialOrder, 'nat')
         trialMatrix={   
-                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %a
-                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %b
-                        @runEventsFromPoints, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %c
-                        @runEventsFromPoints, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %d
+                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList;
+                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList;
+                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList;
+                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList;
                     };
-    elseif strcmp(trialOrder, '2')
+    else
         trialMatrix={   
-                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %b
-                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %a
-                        @runEventsFromPoints, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %d
-                        @runEventsFromPoints, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %c
-                    };
-    elseif strcmp(trialOrder, '3')
-        trialMatrix={   
-                        @runEventsFromPoints, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %c
-                        @runEventsFromPoints, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %d
-                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %a
-                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %b
-                    };
-    elseif strcmp(trialOrder, '4')
-        trialMatrix={   
-                        @runEventsFromPoints, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %d
-                        @runEventsFromPoints, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %c
-                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList; %b
-                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList; %a
+                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList;
+                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList;
+                        @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList;
+                        @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList;
                     };
     end
 
@@ -988,8 +974,8 @@ function [condition] = displayTypeInputcheck(condition)
 end
 
 function [condition] = conditionInputcheck(condition)
-    while ~any(condition == ['1','2', '3', '4'])
-        condition = input('Condition must be 1, 2, 3, or 4: ', 's');
+    while ~strcmp(condition, 'nat') && ~strcmp(condition, 'unnat')
+        condition = input('Condition must be nat or unnat: ', 's');
     end
 end
 
