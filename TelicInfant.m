@@ -1,6 +1,6 @@
 function [] = TelicInfant()
     % Set up initial conditions via the command line
-    condition = input('Natural first (nat) or unnatural first (unnat): ', 's');
+    condition = input('Condition 1 or 2: ', 's');
     trialOrder = conditionInputcheck(condition);
     condition = input('Condition r (right alternating) or l (left alternating): ', 's');
     alternatingSide = alternatingInputcheck(condition);
@@ -17,7 +17,7 @@ function [] = TelicInfant()
     constUnnatBreakList = csvread(['ConstUnnatBreaks.csv'], 0, 0); 
 
     % NOTE: The projector mirrors the view, so 'left' here is used to indicate the right side of a non-projected screen.
-    if strcmp(trialOrder, 'nat')
+    if strcmp(trialOrder, '1')
         trialMatrix={   
                         @runObjectTrial, 'equal', alternateNatParametersList, alternateNatBreakList, constNatParametersList, constNatBreakList;
                         @runObjectTrial, 'random', alternateUnnatParametersList, alternateUnnatBreakList, constUnnatParametersList, constUnnatBreakList;
@@ -69,8 +69,9 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
     else
         generationFunction = @drawObjectsFromPoints;
     end
-    [x,y,buttons] = GetMouse;
-    while datenum(clock) < finalTime && ~any(buttons)
+    RestrictKeysForKbCheck([KbName('j')]);
+    [keyIsDown, secs, keycode] = KbCheck;
+    while datenum(clock) < finalTime && ~keyIsDown
         % read parameters from the list based on the current trial number
         % constantParams contains both x and ypoints
         constantParams = [constParametersList(p,:); constParametersList(p+1,:)];
@@ -87,11 +88,9 @@ function [] = runObjectTrial(calculationsMap, screenInfoMap, colorsMap, alternat
         if p > numel(constParametersList)/2
             p = 0;
         end
-        [x,y,buttons] = GetMouse;
+        [keyIsDown, secs, keycode] = KbCheck;
     end
-    while any(buttons) % wait for release
-        [x,y,buttons] = GetMouse;
-    end
+    RestrictKeysForKbCheck([]);
 end
 
 % takes parameters for two sides of stimuli and draws both to the screen for the amount of time specified for the display
@@ -504,8 +503,9 @@ function [] = runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alt
     % frame indexing variable f, parameter indexing variable p
     f=1;
     currentAnimationLength = max([numel(constant_xpoints), numel(alternating_ypoints)]);
-    [x,y,buttons] = GetMouse;
-    while datenum(clock) < finalTime && ~any(buttons)
+    RestrictKeysForKbCheck([KbName('j')]);
+    [keyIsDown, secs, keycode] = KbCheck;
+    while datenum(clock) < finalTime && ~keyIsDown
         % if the current f is through all the frames of the current animation
         if f >= currentAnimationLength
             % if the clock+1 second is before the final time (there's more than one second left to animate)
@@ -555,11 +555,9 @@ function [] = runEventsFromPoints(calculationsMap, screenInfoMap, colorsMap, alt
             end
         end
         f = f+1;
-        [x,y,buttons] = GetMouse;
+        [keyIsDown, secs, keycode] = KbCheck;
     end
-    while any(buttons) % wait for release
-        [x,y,buttons] = GetMouse;
-    end
+    RestrictKeysForKbCheck([]);
 end
 
 % manages running the events condition for an amount of time.
@@ -826,7 +824,7 @@ function [] = attentionScreen(screenInfoMap, colorsMap)
     pixelScale = screenYpixels / (dim * 2 + 2);
     pixelScale = screenYpixels / (dim * 4 + 2);
     x = x .* pixelScale;
-    y = y.* pixelScale;
+    y = y .* pixelScale;
 
     % Calculate the number of dots
     numDots = numel(x);
@@ -862,10 +860,11 @@ function [] = attentionScreen(screenInfoMap, colorsMap)
     screenInfoMap('vbl') = Screen('Flip', window);
     ifi = screenInfoMap('ifi');
     waitframes = 1;
-    [x,y,buttons] = GetMouse;
+    RestrictKeysForKbCheck([KbName('f')]);
+    [keyIsDown, secs, keycode] = KbCheck;
     % Loop the animation until a key is pressed
-    while ~any(buttons)
-        [x,y,buttons] = GetMouse;
+    while ~keyIsDown
+        [keyIsDown, secs, keycode] = KbCheck;
         % Scale the grid coordinates
         scaleFactor = abs(amplitude * sin(angFreq * time + startPhase));
 
@@ -885,34 +884,8 @@ function [] = attentionScreen(screenInfoMap, colorsMap)
         % Increment the time
         time = time + ifi;
     end
-    while any(buttons) % wait for release
-        [x,y,buttons] = GetMouse;
-    end
-    while ~any(buttons) % wait for second click
-        [x,y,buttons] = GetMouse;
-        % Scale the grid coordinates
-        scaleFactor = abs(amplitude * sin(angFreq * time + startPhase));
-
-        % Scale the dot size. Here we limit the minimum dot size to one pixel
-        % by using the max function as PTB won't allow the dot size to scale to
-        % zero (sensibly, as you'd be drawing no dots at all)
-        thisDotSize = max(4, maxDotSize .* scaleFactor);
-
-        % Draw all of our dots to the screen in a single line of code adding
-        % the sine oscilation to the X coordinates of the dots
-        Screen('DrawDots', window, [xPosVector; yPosVector] .* scaleFactor,...
-            thisDotSize, dotColors, dotCenter, 2);
-
-        % Flip to the screen
-        screenInfoMap('vbl')  = Screen('Flip', window, screenInfoMap('vbl') + (waitframes - 0.5) * ifi);
-
-        % Increment the time
-        time = time + ifi;
-    end
-    while any(buttons) % wait for release
-        [x,y,buttons] = GetMouse;
-    end
-
+    RestrictKeysForKbCheck([]);
+    [keyIsDown, secs, keycode] = KbCheck;
 end
 
 % A blank screen at the end of the experiment; press any key to exit it
@@ -924,16 +897,25 @@ function [] = endingScreen(screenInfoMap, colorsMap)
     screenXpixels = screenInfoMap('stimXpixels');
 
     screenInfoMap('vbl') = Screen('Flip', window);
-
-    [x,y,buttons] = GetMouse;
+    RestrictKeysForKbCheck([KbName('f')]);
+    [keyIsDown, secs, keycode] = KbCheck;
     
-    while any(buttons) % wait for release
-        [x,y,buttons] = GetMouse;
+    while ~keyIsDown
+        [keyIsDown, secs, keycode] = KbCheck;
     end
-    % Loop the animation until a key is pressed
-    while ~KbCheck && ~any(buttons)
-        [x,y,buttons] = GetMouse;
+    % wait for release
+    while keyIsDown
+        [keyIsDown, secs, keycode] = KbCheck;
     end
+    % wait for second keypress
+    while ~keyIsDown
+        [keyIsDown, secs, keycode] = KbCheck;
+    end
+    % wait for release
+    while keyIsDown
+        [keyIsDown, secs, keycode] = KbCheck;
+    end
+    RestrictKeysForKbCheck([]);
 end
 
 
@@ -974,8 +956,8 @@ function [condition] = displayTypeInputcheck(condition)
 end
 
 function [condition] = conditionInputcheck(condition)
-    while ~strcmp(condition, 'nat') && ~strcmp(condition, 'unnat')
-        condition = input('Condition must be nat or unnat: ', 's');
+    while ~strcmp(condition, '1') && ~strcmp(condition, '2')
+        condition = input('Condition must be 1 or 2: ', 's');
     end
 end
 
